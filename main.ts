@@ -1,4 +1,4 @@
-import { Plugin, Modal, Notice, TFile, App, PluginSettingTab, Setting } from "obsidian";
+import { Plugin, Modal, Notice, TFile, App, PluginSettingTab, Setting, ItemView, WorkspaceLeaf } from "obsidian";
 
 interface ReadingRecordManagerSettings {
     enableHideFinished: boolean;
@@ -1264,8 +1264,8 @@ class QuickActionModal extends Modal {
             this.plugin.toggleCurrentBookStatus();
         });
 
-        addCard("📊", "Update Dashboard", "Manually regenerate the Master List", () => {
-            this.plugin.updateMasterReadingList(true);
+        addCard("📊", "Open Sidebar", "Show the visual sidebar tracker panel", () => {
+            this.plugin.activateSidebarView();
         });
     }
 
@@ -1274,6 +1274,158 @@ class QuickActionModal extends Modal {
         contentEl.empty();
     }
 }
+
+// Sidebar View Type Identifier
+export const VIEW_TYPE_READING_STATUS = "reading-status-sidebar-view";
+
+// Custom Sidebar Reading Tracker View
+class ReadingStatusSidebarView extends ItemView {
+    plugin: ReadingRecordManager;
+
+    constructor(leaf: WorkspaceLeaf, plugin: ReadingRecordManager) {
+        super(leaf);
+        this.plugin = plugin;
+    }
+
+    getViewType(): string {
+        return VIEW_TYPE_READING_STATUS;
+    }
+
+    getDisplayText(): string {
+        return "Book Tracker";
+    }
+
+    getIcon(): string {
+        return "book-open";
+    }
+
+    async onOpen() {
+        this.registerEvent(this.app.metadataCache.on("changed", () => this.updateView()));
+        await this.updateView();
+    }
+
+    async onClose() {
+        // Nothing to clean up
+    }
+
+    async updateView() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("rrm-sidebar-container");
+
+        // Add header
+        const header = contentEl.createDiv({ cls: "rrm-sidebar-header" });
+        const titleEl = header.createEl("h3", { text: "📚 Book Tracker" });
+
+        // Fetch books data
+        const files = this.app.vault.getMarkdownFiles();
+        interface BookItem {
+            file: TFile;
+            title: string;
+            author: string;
+            status: string;
+            series: string;
+            volume: string;
+        }
+        const books: BookItem[] = [];
+
+        for (const file of files) {
+            if (file.path === "Books/Master Reading List.md") continue;
+            const cache = this.app.metadataCache.getFileCache(file);
+            const fm = cache?.frontmatter;
+            const isInBooksFolder = file.path.startsWith("Books/");
+            const hasStatus = fm && "status" in fm;
+
+            if (isInBooksFolder || hasStatus) {
+                books.push({
+                    file,
+                    title: fm?.title || file.basename,
+                    author: fm?.author || "Unknown",
+                    status: fm?.status || "To Read",
+                    series: fm?.series || "",
+                    volume: fm?.volume || ""
+                });
+            }
+        }
+
+        const total = books.length;
+        titleEl.setText(`📚 Book Tracker (${total})`);
+        const toRead = books.filter(b => b.status === "To Read").length;
+        const reading = books.filter(b => b.status === "Reading").length;
+        const finished = books.filter(b => b.status === "Finished").length;
+
+        // Create Stats section
+        const statsGrid = contentEl.createDiv({ cls: "rrm-sidebar-stats" });
+        
+        const addStat = (label: string, count: number, cls: string) => {
+            const stat = statsGrid.createDiv({ cls: `rrm-sidebar-stat-card ${cls}` });
+            stat.createDiv({ text: label, cls: "rrm-sidebar-stat-label" });
+            stat.createDiv({ text: String(count), cls: "rrm-sidebar-stat-count" });
+        };
+
+        addStat("⏳ To Read", toRead, "to-read");
+        addStat("📖 Reading", reading, "reading");
+        addStat("✅ Finished", finished, "finished");
+
+        // "Currently Reading" section
+        contentEl.createEl("h4", { text: "📖 Currently Reading", cls: "rrm-sidebar-section-title" });
+        const readingBooks = books.filter(b => b.status === "Reading");
+
+        if (readingBooks.length === 0) {
+            contentEl.createEl("div", { text: "No books in progress.", cls: "rrm-sidebar-empty-text" });
+        } else {
+            const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
+            for (const book of readingBooks) {
+                const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
+                
+                const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
+                
+                let displayName = book.title;
+                if (book.series) {
+                    displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
+                }
+                
+                const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
+                link.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const leaf = this.app.workspace.getLeaf(false);
+                    await leaf.openFile(book.file);
+                });
+
+                infoContainer.createEl("div", { text: `By: ${book.author}`, cls: "rrm-sidebar-item-author" });
+
+                // Add Toggle Action Button
+                const btn = item.createEl("button", { text: "✔ Finish", cls: "rrm-sidebar-item-btn" });
+                btn.addEventListener("click", async () => {
+                    await this.plugin.toggleBookStatus(book.file);
+                    await this.updateView();
+                });
+            }
+        }
+
+        // Add quick command action list
+        contentEl.createEl("h4", { text: "⚡ Quick Actions", cls: "rrm-sidebar-section-title" });
+        const quickActions = contentEl.createDiv({ cls: "rrm-sidebar-quick-actions" });
+
+        const addAction = (label: string, icon: string, onClick: () => void) => {
+            const btn = quickActions.createEl("button", { cls: "rrm-sidebar-action-btn" });
+            btn.createEl("span", { text: icon, cls: "rrm-sidebar-action-icon" });
+            btn.createEl("span", { text: label });
+            btn.addEventListener("click", onClick);
+        };
+
+        addAction("Add Book", "➕", () => this.plugin.openAddBookModal());
+        addAction("Dashboard", "📊", () => {
+            const file = this.app.vault.getAbstractFileByPath("Books/Master Reading List.md");
+            if (file instanceof TFile) {
+                this.app.workspace.getLeaf(false).openFile(file);
+            } else {
+                this.plugin.updateMasterReadingList(true);
+            }
+        });
+    }
+}
+
 
 // Recursive directory creation helper
 async function createFolderRecursively(app: App, path: string): Promise<void> {
@@ -1358,6 +1510,51 @@ export default class ReadingRecordManager extends Plugin {
                 }
             })
         );
+
+        // 6. Show Reading Tracker Sidebar Command
+        this.addCommand({
+            id: "open-reading-tracker-sidebar",
+            name: "Show Reading Tracker Sidebar",
+            callback: () => this.activateSidebarView()
+        });
+
+        // Register custom sidebar view
+        this.registerView(
+            VIEW_TYPE_READING_STATUS,
+            (leaf) => new ReadingStatusSidebarView(leaf, this)
+        );
+
+        // Register File Context Menu (Right-click in file explorer)
+        this.registerEvent(
+            this.app.workspace.on("file-menu", (menu, file) => {
+                if (!(file instanceof TFile) || file.extension !== "md") return;
+
+                const cache = this.app.metadataCache.getFileCache(file);
+                const frontmatter = cache?.frontmatter;
+                const isInBooksFolder = file.path.startsWith("Books/");
+                const hasStatus = frontmatter && "status" in frontmatter;
+
+                if (isInBooksFolder || hasStatus) {
+                    menu.addItem((item) => {
+                        item
+                            .setTitle("Toggle Book Status")
+                            .setIcon("check-square")
+                            .onClick(async () => {
+                                await this.toggleBookStatus(file);
+                            });
+                    });
+
+                    menu.addItem((item) => {
+                        item
+                            .setTitle("Edit Book Properties")
+                            .setIcon("pencil")
+                            .onClick(() => {
+                                this.openEditBookModalForFile(file);
+                            });
+                    });
+                }
+            })
+        );
     }
 
     onunload() {
@@ -1377,6 +1574,31 @@ export default class ReadingRecordManager extends Plugin {
     // Opens the central Control Panel
     openQuickActionModal() {
         new QuickActionModal(this.app, this).open();
+    }
+
+    // Activates or reveals the Reading Tracker Sidebar view
+    async activateSidebarView() {
+        const { workspace } = this.app;
+        
+        let leaf: WorkspaceLeaf | null = null;
+        const leaves = workspace.getLeavesOfType(VIEW_TYPE_READING_STATUS);
+        
+        if (leaves.length > 0) {
+            leaf = leaves[0];
+        } else {
+            // Put it in the right sidebar (right leaf)
+            leaf = workspace.getRightLeaf(false);
+            if (leaf) {
+                await leaf.setViewState({
+                    type: VIEW_TYPE_READING_STATUS,
+                    active: true,
+                });
+            }
+        }
+        
+        if (leaf) {
+            workspace.revealLeaf(leaf);
+        }
     }
 
     // Opens the Modal to add a new book and creates the Markdown file
@@ -1468,27 +1690,26 @@ export default class ReadingRecordManager extends Plugin {
         }).open();
     }
 
-    // Opens the Modal to edit properties of the currently active book file
-    openEditBookModal() {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile || activeFile.extension !== "md") {
-            new Notice("Please open a book markdown file first.");
+    // Opens the Modal to edit properties of a specific book file
+    openEditBookModalForFile(file: TFile) {
+        if (!file || file.extension !== "md") {
+            new Notice("Please select a book markdown file first.");
             return;
         }
 
-        const cache = this.app.metadataCache.getFileCache(activeFile);
+        const cache = this.app.metadataCache.getFileCache(file);
         const frontmatter = cache?.frontmatter;
 
-        const isInBooksFolder = activeFile.path.startsWith("Books/");
+        const isInBooksFolder = file.path.startsWith("Books/");
         const hasStatus = frontmatter && "status" in frontmatter;
 
         if (!isInBooksFolder && !hasStatus) {
-            new Notice("The active file is not recognized as a book record.");
+            new Notice("The file is not recognized as a book record.");
             return;
         }
 
         const initialData = {
-            title: frontmatter?.title || activeFile.basename,
+            title: frontmatter?.title || file.basename,
             author: frontmatter?.author || "",
             seriesName: frontmatter?.series || "",
             volume: frontmatter?.volume || "",
@@ -1521,7 +1742,7 @@ export default class ReadingRecordManager extends Plugin {
 
             try {
                 // If the path needs to change, rename/move the file first
-                if (newPath !== activeFile.path) {
+                if (newPath !== file.path) {
                     await createFolderRecursively(this.app, parentFolder);
 
                     const fileExists = this.app.vault.getAbstractFileByPath(newPath);
@@ -1530,11 +1751,11 @@ export default class ReadingRecordManager extends Plugin {
                         return;
                     }
 
-                    await this.app.fileManager.renameFile(activeFile, newPath);
+                    await this.app.fileManager.renameFile(file, newPath);
                 }
 
                 // Now update the frontmatter properties of the book
-                await this.app.fileManager.processFrontMatter(activeFile, (fm) => {
+                await this.app.fileManager.processFrontMatter(file, (fm) => {
                     fm.title = title.trim();
                     fm.status = status;
                     fm.author = author.trim();
@@ -1564,22 +1785,31 @@ export default class ReadingRecordManager extends Plugin {
         }).open();
     }
 
-    // Toggles reading status of current file (circular toggle)
-    async toggleCurrentBookStatus() {
+    // Opens the Modal to edit properties of the currently active book file
+    openEditBookModal() {
         const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile || activeFile.extension !== "md") {
+        if (!activeFile) {
             new Notice("Please open a book markdown file first.");
             return;
         }
+        this.openEditBookModalForFile(activeFile);
+    }
 
-        const cache = this.app.metadataCache.getFileCache(activeFile);
+    // Toggles reading status of a specific file (circular toggle)
+    async toggleBookStatus(file: TFile) {
+        if (!file || file.extension !== "md") {
+            new Notice("Please select a book markdown file first.");
+            return;
+        }
+
+        const cache = this.app.metadataCache.getFileCache(file);
         const frontmatter = cache?.frontmatter;
 
-        const isInBooksFolder = activeFile.path.startsWith("Books/");
+        const isInBooksFolder = file.path.startsWith("Books/");
         const hasStatus = frontmatter && "status" in frontmatter;
 
         if (!isInBooksFolder && !hasStatus) {
-            new Notice("The active file is not recognized as a book record.");
+            new Notice("The file is not recognized as a book record.");
             return;
         }
 
@@ -1595,7 +1825,7 @@ export default class ReadingRecordManager extends Plugin {
         }
 
         try {
-            await this.app.fileManager.processFrontMatter(activeFile, (fm) => {
+            await this.app.fileManager.processFrontMatter(file, (fm) => {
                 fm.status = nextStatus;
                 fm.updated = formatDateTime(new Date());
 
@@ -1607,7 +1837,7 @@ export default class ReadingRecordManager extends Plugin {
                 }
             });
 
-            new Notice(`"${activeFile.basename}" status updated to: ${nextStatus}`);
+            new Notice(`"${file.basename}" status updated to: ${nextStatus}`);
 
             // Auto-refresh the master reading list in background
             await this.updateMasterReadingList(false);
@@ -1615,6 +1845,16 @@ export default class ReadingRecordManager extends Plugin {
             console.error("Failed to update status in frontmatter:", error);
             new Notice("Error: Failed to update book status.");
         }
+    }
+
+    // Toggles reading status of current file (circular toggle)
+    async toggleCurrentBookStatus() {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new Notice("Please open a book markdown file first.");
+            return;
+        }
+        await this.toggleBookStatus(activeFile);
     }
 
     // Generates or updates the "Master Reading List" Markdown Table
