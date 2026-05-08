@@ -3,11 +3,13 @@ import { Plugin, Modal, Notice, TFile, App, PluginSettingTab, Setting, ItemView,
 interface ReadingRecordManagerSettings {
     enableHideFinished: boolean;
     hideFinishedDays: number;
+    enableAutoUpdate: boolean;
 }
 
 const DEFAULT_SETTINGS: ReadingRecordManagerSettings = {
     enableHideFinished: true,
-    hideFinishedDays: 7
+    hideFinishedDays: 7,
+    enableAutoUpdate: true
 };
 
 // Helper to format Date as "YYYY-MM-DD"
@@ -1499,6 +1501,7 @@ export default class ReadingRecordManager extends Plugin {
         // 4. Watch metadata changes to auto-update Master Reading List (solves automatic tracking)
         this.registerEvent(
             this.app.metadataCache.on("changed", async (file) => {
+                if (!this.settings.enableAutoUpdate) return;
                 if (file.path === "Books/Master Reading List.md") return;
 
                 const isInBooksFolder = file.path.startsWith("Books/");
@@ -2082,6 +2085,18 @@ class ReadingRecordManagerSettingTab extends PluginSettingTab {
                             this.plugin.settings.hideFinishedDays = num;
                             await this.plugin.saveSettings();
                         }
+                    })
+            );
+
+        new Setting(containerEl)
+            .setName("Auto-update Master List on File Changes")
+            .setDesc("Automatically rebuild the Master Reading List when a book's properties are changed in the background. Disable this to prevent Syncthing sync-conflicts.")
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableAutoUpdate)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableAutoUpdate = value;
+                        await this.plugin.saveSettings();
                     })
             );
     }
