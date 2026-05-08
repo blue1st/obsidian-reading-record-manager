@@ -24,7 +24,12 @@ A seamless book status, reading notes, and final review manager for [Obsidian](h
 
 - 🎛️ **Unified Control Panel (Ribbon Integration)**
   - Consolidates all commands into **one single sidebar Ribbon icon** that launches a beautiful 2x2 grid Control Panel.
-  - Instantly trigger core actions: Add Book, Edit Properties, Toggle Status, or Update Dashboard in a single place.
+  - Instantly trigger core actions: Add Book, Edit Properties, Toggle Status, or Open the Custom Sidebar Tracker in a single place.
+- 📊 **Visual Book Tracker Sidebar View**
+  - Features an interactive custom right-hand sidebar panel showing beautiful stats badges for To Read, Reading, and Finished counts.
+  - Displays list of "Currently Reading" books with rapid-completion toggle buttons, quick links to open books, and quick actions.
+- 🖱️ **File Context Menu Actions**
+  - Adds a direct right-click integration on any book file in the File Explorer. Right-click any book note to instantly toggle status or edit properties from the context menu.
 - 📖 **Seamless Book Entry Creation**
   - Add new book notes with rich metadata (Title, Author, Series Name, Volume, Category, Subcategory, Status).
   - **Smart Auto-Title**: If you enter a Series Name and Volume, the plugin will automatically propose and generate the title (e.g. `My Series Vol_01`).
@@ -142,7 +147,12 @@ npm run build
 
 - 🎛️ **統合コントロールパネル（リボンアイコンの集約）**
   - すべての操作をサイドバーの**1つのリボンアイコン**に集約。クリックすると美しく整列された2×2グリッド形式の「コントロールパネル」が開きます。
-  - 書籍追加、情報編集、ステータスの切り替え、ダッシュボードの手動更新を、1クリックで直感的に選択・起動できます。
+  - 書籍追加、情報編集、ステータスの切り替え、カスタムサイドバーの起動などを1クリックで直感的に選択・起動できます。
+- 📊 **ビジュアル読書トラッカー（サイドバービュー）**
+  - 画面右側のサイドバーに、未読・読書中・読了本の統計数が一目でわかる美しいバッジ表示。
+  - 「読書中」の書籍がリストアップされ、チェックボタンでの読了完了切り替えや、ワンクリックでの書籍ノート開封が可能です。
+- 🖱️ **ファイル右クリックコンテキストメニュー統合**
+  - ファイルエクスプローラー（またはエディタタイトル）上の書籍ファイルを右クリックするだけで、ステータスの切り替えや書籍プロパティの編集モーダルを瞬時に呼び出せます。
 - 📖 **スムーズな書籍追加**
   - タイトル、著者、シリーズ、巻数、カテゴリ、サブカテゴリ、ステータスを入力して、書籍用のMarkdownノートを簡単に新規作成。
   - **自動タイトル生成**: シリーズ名と巻数を入力すると、タイトルを自動的に提案・生成（例: `シリーズ名 Vol_01`）。
