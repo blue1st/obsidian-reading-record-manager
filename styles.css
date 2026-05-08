@@ -1,0 +1,214 @@
+/* Reading Record Manager Styles */
+
+/* Modal styling */
+.rrm-modal {
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 100%;
+}
+
+.rrm-modal-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-normal);
+    border-bottom: 2px solid var(--background-modifier-border);
+    padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rrm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.rrm-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.rrm-field-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rrm-input, .rrm-select {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-modifier-form-field);
+    color: var(--text-normal);
+    font-size: 0.95rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.rrm-input:focus, .rrm-select:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.rrm-input::placeholder {
+    color: var(--text-faint);
+}
+
+/* Row wrapper for side-by-side elements */
+.rrm-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.rrm-row > .rrm-field-group {
+    flex: 1;
+}
+
+/* Button layout */
+.rrm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.rrm-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.rrm-btn-secondary {
+    background-color: var(--background-modifier-border);
+    color: var(--text-normal);
+}
+
+.rrm-btn-secondary:hover {
+    background-color: var(--background-modifier-border-hover);
+}
+
+.rrm-btn-primary {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.rrm-btn-primary:hover {
+    background-color: var(--interactive-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--interactive-accent-rgb), 0.3);
+}
+
+.rrm-btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Badges for status inside Markdown files / tables */
+.rrm-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.rrm-badge-to-read {
+    background-color: rgba(142, 150, 170, 0.15);
+    color: #8e96aa;
+    border: 1px solid rgba(142, 150, 170, 0.3);
+}
+
+.rrm-badge-reading {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    animation: rrm-pulse 2s infinite alternate;
+}
+
+.rrm-badge-finished {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+@keyframes rrm-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+    }
+}
+
+/* Suggestion UI styling */
+.rrm-field-group {
+    position: relative;
+}
+
+.rrm-suggest-container {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.rrm-suggest-item {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rrm-suggest-item:hover,
+.rrm-suggest-item.is-selected {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.rrm-suggest-item-text {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.rrm-suggest-item-main {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.rrm-suggest-item-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.rrm-suggest-item:hover .rrm-suggest-item-sub,
+.rrm-suggest-item.is-selected .rrm-suggest-item-sub {
+    color: var(--text-on-accent);
+    opacity: 0.9;
+}
+
