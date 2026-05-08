@@ -212,3 +212,49 @@
     opacity: 0.9;
 }
 
+
+
+/* Quick action menu modal styling */
+.rrm-quick-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.rrm-quick-menu-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    background-color: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+    gap: 0.75rem;
+}
+
+.rrm-quick-menu-card:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rrm-quick-menu-icon {
+    font-size: 2rem;
+}
+
+.rrm-quick-menu-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.rrm-quick-menu-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}

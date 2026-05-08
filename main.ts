@@ -1221,6 +1221,60 @@ class EditBookModal extends Modal {
     }
 }
 
+// Quick Action Control Panel Modal
+class QuickActionModal extends Modal {
+    plugin: ReadingRecordManager;
+
+    constructor(app: App, plugin: ReadingRecordManager) {
+        super(app);
+        this.plugin = plugin;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.addClass("rrm-modal");
+
+        contentEl.createEl("h2", {
+            text: "📚 Reading Record Manager",
+            cls: "rrm-modal-title"
+        });
+
+        const grid = contentEl.createDiv({ cls: "rrm-quick-menu-grid" });
+
+        const addCard = (icon: string, title: string, desc: string, onClick: () => void) => {
+            const card = grid.createDiv({ cls: "rrm-quick-menu-card" });
+            card.createEl("span", { text: icon, cls: "rrm-quick-menu-icon" });
+            card.createEl("div", { text: title, cls: "rrm-quick-menu-title" });
+            card.createEl("div", { text: desc, cls: "rrm-quick-menu-desc" });
+            card.addEventListener("click", () => {
+                this.close();
+                onClick();
+            });
+        };
+
+        addCard("➕", "Add New Book", "Create a new book or volume entry", () => {
+            this.plugin.openAddBookModal();
+        });
+
+        addCard("✏️", "Edit Properties", "Update metadata, rename or relocate file", () => {
+            this.plugin.openEditBookModal();
+        });
+
+        addCard("🔄", "Toggle Status", "Cycle through To Read / Reading / Finished", () => {
+            this.plugin.toggleCurrentBookStatus();
+        });
+
+        addCard("📊", "Update Dashboard", "Manually regenerate the Master List", () => {
+            this.plugin.updateMasterReadingList(true);
+        });
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+    }
+}
+
 // Recursive directory creation helper
 async function createFolderRecursively(app: App, path: string): Promise<void> {
     const parts = path.split("/").filter(p => p !== "");
@@ -1250,6 +1304,13 @@ export default class ReadingRecordManager extends Plugin {
         // Add settings tab
         this.addSettingTab(new ReadingRecordManagerSettingTab(this.app, this));
 
+        // 0. Open Control Panel Command
+        this.addCommand({
+            id: "open-control-panel",
+            name: "Open Control Panel",
+            callback: () => this.openQuickActionModal()
+        });
+
         // 1. Add Book Command
         this.addCommand({
             id: "add-book",
@@ -1278,17 +1339,9 @@ export default class ReadingRecordManager extends Plugin {
             callback: () => this.openEditBookModal()
         });
 
-        // Add Ribbon Icons (Sidebar buttons)
-        this.addRibbonIcon("book-open", "Add New Book", () => {
-            this.openAddBookModal();
-        });
-
-        this.addRibbonIcon("pencil", "Edit Current Book Properties", () => {
-            this.openEditBookModal();
-        });
-
-        this.addRibbonIcon("check-square", "Toggle Reading Status", () => {
-            this.toggleCurrentBookStatus();
+        // Add Single Ribbon Icon to open central Control Panel (avoids sidebar clutter)
+        this.addRibbonIcon("book-open", "Reading Record Manager Panel", () => {
+            this.openQuickActionModal();
         });
 
         // 4. Watch metadata changes to auto-update Master Reading List (solves automatic tracking)
@@ -1319,6 +1372,11 @@ export default class ReadingRecordManager extends Plugin {
         await this.saveData(this.settings);
         // Refresh master list automatically when settings change
         await this.updateMasterReadingList(false);
+    }
+
+    // Opens the central Control Panel
+    openQuickActionModal() {
+        new QuickActionModal(this.app, this).open();
     }
 
     // Opens the Modal to add a new book and creates the Markdown file
