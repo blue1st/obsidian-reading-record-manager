@@ -22,6 +22,9 @@ A seamless book status, reading notes, and final review manager for [Obsidian](h
 
 ## ✨ Key Features
 
+- 🎛️ **Unified Control Panel (Ribbon Integration)**
+  - Consolidates all commands into **one single sidebar Ribbon icon** that launches a beautiful 2x2 grid Control Panel.
+  - Instantly trigger core actions: Add Book, Edit Properties, Toggle Status, or Update Dashboard in a single place.
 - 📖 **Seamless Book Entry Creation**
   - Add new book notes with rich metadata (Title, Author, Series Name, Volume, Category, Subcategory, Status).
   - **Smart Auto-Title**: If you enter a Series Name and Volume, the plugin will automatically propose and generate the title (e.g. `My Series Vol_01`).
@@ -137,6 +140,9 @@ npm run build
 
 ## ✨ 主な機能
 
+- 🎛️ **統合コントロールパネル（リボンアイコンの集約）**
+  - すべての操作をサイドバーの**1つのリボンアイコン**に集約。クリックすると美しく整列された2×2グリッド形式の「コントロールパネル」が開きます。
+  - 書籍追加、情報編集、ステータスの切り替え、ダッシュボードの手動更新を、1クリックで直感的に選択・起動できます。
 - 📖 **スムーズな書籍追加**
   - タイトル、著者、シリーズ、巻数、カテゴリ、サブカテゴリ、ステータスを入力して、書籍用のMarkdownノートを簡単に新規作成。
   - **自動タイトル生成**: シリーズ名と巻数を入力すると、タイトルを自動的に提案・生成（例: `シリーズ名 Vol_01`）。
