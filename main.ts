@@ -1529,12 +1529,9 @@ export default class ReadingRecordManager extends Plugin {
             this.app.workspace.on("file-menu", (menu, file) => {
                 if (!(file instanceof TFile) || file.extension !== "md") return;
 
-                const cache = this.app.metadataCache.getFileCache(file);
-                const frontmatter = cache?.frontmatter;
                 const isInBooksFolder = file.path.startsWith("Books/");
-                const hasStatus = frontmatter && "status" in frontmatter;
 
-                if (isInBooksFolder || hasStatus) {
+                if (isInBooksFolder) {
                     menu.addItem((item) => {
                         item
                             .setTitle("Toggle Book Status")
