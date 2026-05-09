@@ -82,9 +82,8 @@ class AddBookModal extends Modal {
             if (!frontmatter) continue;
 
             const isInBooksFolder = file.path.startsWith("Books/");
-            const hasStatus = "status" in frontmatter;
 
-            if (isInBooksFolder || hasStatus) {
+            if (isInBooksFolder) {
                 const title = frontmatter.title || file.basename;
                 const author = frontmatter.author || "";
                 const series = frontmatter.series || "";
@@ -670,9 +669,8 @@ class EditBookModal extends Modal {
             if (!frontmatter) continue;
 
             const isInBooksFolder = file.path.startsWith("Books/");
-            const hasStatus = "status" in frontmatter;
 
-            if (isInBooksFolder || hasStatus) {
+            if (isInBooksFolder) {
                 const title = frontmatter.title || file.basename;
                 const author = frontmatter.author || "";
                 const series = frontmatter.series || "";
@@ -1336,9 +1334,8 @@ class ReadingStatusSidebarView extends ItemView {
             const cache = this.app.metadataCache.getFileCache(file);
             const fm = cache?.frontmatter;
             const isInBooksFolder = file.path.startsWith("Books/");
-            const hasStatus = fm && "status" in fm;
 
-            if (isInBooksFolder || hasStatus) {
+            if (isInBooksFolder) {
                 books.push({
                     file,
                     title: fm?.title || file.basename,
@@ -1505,10 +1502,8 @@ export default class ReadingRecordManager extends Plugin {
                 if (file.path === "Books/Master Reading List.md") return;
 
                 const isInBooksFolder = file.path.startsWith("Books/");
-                const cache = this.app.metadataCache.getFileCache(file);
-                const hasStatus = cache?.frontmatter && "status" in cache.frontmatter;
 
-                if (isInBooksFolder || hasStatus) {
+                if (isInBooksFolder) {
                     await this.updateMasterReadingList(false);
                 }
             })
@@ -1701,9 +1696,8 @@ export default class ReadingRecordManager extends Plugin {
         const frontmatter = cache?.frontmatter;
 
         const isInBooksFolder = file.path.startsWith("Books/");
-        const hasStatus = frontmatter && "status" in frontmatter;
 
-        if (!isInBooksFolder && !hasStatus) {
+        if (!isInBooksFolder) {
             new Notice("The file is not recognized as a book record.");
             return;
         }
@@ -1806,9 +1800,8 @@ export default class ReadingRecordManager extends Plugin {
         const frontmatter = cache?.frontmatter;
 
         const isInBooksFolder = file.path.startsWith("Books/");
-        const hasStatus = frontmatter && "status" in frontmatter;
 
-        if (!isInBooksFolder && !hasStatus) {
+        if (!isInBooksFolder) {
             new Notice("The file is not recognized as a book record.");
             return;
         }
@@ -1886,9 +1879,8 @@ export default class ReadingRecordManager extends Plugin {
             const frontmatter = cache?.frontmatter;
 
             const isInBooksFolder = file.path.startsWith("Books/");
-            const hasStatus = frontmatter && "status" in frontmatter;
 
-            if (isInBooksFolder || hasStatus) {
+            if (isInBooksFolder) {
                 const status = frontmatter?.status || "To Read";
                 const author = frontmatter?.author || "Unknown";
                 const series = frontmatter?.series || "";
