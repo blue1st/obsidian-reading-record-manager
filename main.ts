@@ -230,6 +230,7 @@ class AddBookModal extends Modal {
         statusSelect.createEl("option", { text: "To Read", value: "To Read" });
         statusSelect.createEl("option", { text: "Reading", value: "Reading" });
         statusSelect.createEl("option", { text: "Finished", value: "Finished" });
+        statusSelect.createEl("option", { text: "On Hold", value: "On Hold" });
 
         // Rating Field
         const ratingGroup = form.createDiv({ cls: "rrm-field-group" });
@@ -309,7 +310,7 @@ class AddBookModal extends Modal {
 
                 items.forEach((item, index) => {
                     const itemEl = suggestEl!.createDiv({ cls: "rrm-suggest-item" });
-                    
+
                     const textContainer = itemEl.createDiv({ cls: "rrm-suggest-item-text" });
                     textContainer.createSpan({ cls: "rrm-suggest-item-main", text: item.primary });
                     if (item.secondary) {
@@ -397,23 +398,23 @@ class AddBookModal extends Modal {
         // Helper to increment volume strings cleanly
         const getNextVolume = (currentVolStr: string): string => {
             if (!currentVolStr) return "01";
-            
+
             const numRegex = /(\d+)(?!.*\d)/; // match last digits block
             const match = currentVolStr.match(numRegex);
-            
+
             if (match) {
                 const numStr = match[1];
                 const num = parseInt(numStr, 10);
                 const nextNum = num + 1;
-                
+
                 let nextNumStr = String(nextNum);
                 if (numStr.startsWith("0") && numStr.length > nextNumStr.length) {
                     nextNumStr = nextNumStr.padStart(numStr.length, "0");
                 }
-                
+
                 return currentVolStr.replace(numRegex, nextNumStr);
             }
-            
+
             return currentVolStr + " 2"; // fallback
         };
 
@@ -429,10 +430,10 @@ class AddBookModal extends Modal {
 
         const updateAutoTitle = () => {
             if (userHasModifiedTitle) return;
-            
+
             const seriesVal = seriesInput.value.trim();
             const volumeVal = volumeInput.value.trim();
-            
+
             if (seriesVal) {
                 if (volumeVal) {
                     titleInput.value = `${seriesVal} ${volumeVal}`;
@@ -506,11 +507,11 @@ class AddBookModal extends Modal {
             },
             (data: any) => {
                 seriesInput.value = data.name;
-                
+
                 if (data.author && !authorInput.value.trim()) {
                     authorInput.value = data.author;
                 }
-                
+
                 if (data.originalVolumeStr) {
                     volumeInput.value = getNextVolume(data.originalVolumeStr);
                 } else {
@@ -854,6 +855,7 @@ class EditBookModal extends Modal {
         statusSelect.createEl("option", { text: "To Read", value: "To Read" });
         statusSelect.createEl("option", { text: "Reading", value: "Reading" });
         statusSelect.createEl("option", { text: "Finished", value: "Finished" });
+        statusSelect.createEl("option", { text: "On Hold (保留中)", value: "On Hold" });
         statusSelect.value = this.initialData.status || "To Read";
 
         // Rating Field
@@ -935,7 +937,7 @@ class EditBookModal extends Modal {
 
                 items.forEach((item, index) => {
                     const itemEl = suggestEl!.createDiv({ cls: "rrm-suggest-item" });
-                    
+
                     const textContainer = itemEl.createDiv({ cls: "rrm-suggest-item-text" });
                     textContainer.createSpan({ cls: "rrm-suggest-item-main", text: item.primary });
                     if (item.secondary) {
@@ -1023,23 +1025,23 @@ class EditBookModal extends Modal {
         // Helper to increment volume strings cleanly
         const getNextVolume = (currentVolStr: string): string => {
             if (!currentVolStr) return "01";
-            
+
             const numRegex = /(\d+)(?!.*\d)/; // match last digits block
             const match = currentVolStr.match(numRegex);
-            
+
             if (match) {
                 const numStr = match[1];
                 const num = parseInt(numStr, 10);
                 const nextNum = num + 1;
-                
+
                 let nextNumStr = String(nextNum);
                 if (numStr.startsWith("0") && numStr.length > nextNumStr.length) {
                     nextNumStr = nextNumStr.padStart(numStr.length, "0");
                 }
-                
+
                 return currentVolStr.replace(numRegex, nextNumStr);
             }
-            
+
             return currentVolStr + " 2"; // fallback
         };
 
@@ -1055,10 +1057,10 @@ class EditBookModal extends Modal {
 
         const updateAutoTitle = () => {
             if (userHasModifiedTitle) return;
-            
+
             const seriesVal = seriesInput.value.trim();
             const volumeVal = volumeInput.value.trim();
-            
+
             if (seriesVal) {
                 if (volumeVal) {
                     titleInput.value = `${seriesVal} ${volumeVal}`;
@@ -1132,11 +1134,11 @@ class EditBookModal extends Modal {
             },
             (data: any) => {
                 seriesInput.value = data.name;
-                
+
                 if (data.author && !authorInput.value.trim()) {
                     authorInput.value = data.author;
                 }
-                
+
                 if (data.originalVolumeStr) {
                     volumeInput.value = getNextVolume(data.originalVolumeStr);
                 } else {
@@ -1424,17 +1426,17 @@ class ReadingStatusSidebarView extends ItemView {
 
         // Mode switch buttons
         const modeSelector = contentEl.createDiv({ cls: "rrm-sidebar-mode-selector" });
-        const trackerBtn = modeSelector.createEl("button", { 
-            text: "📝 Tracker", 
-            cls: `rrm-sidebar-mode-btn ${this.activeMode === "tracker" ? "is-active" : ""}` 
+        const trackerBtn = modeSelector.createEl("button", {
+            text: "📝 Tracker",
+            cls: `rrm-sidebar-mode-btn ${this.activeMode === "tracker" ? "is-active" : ""}`
         });
         trackerBtn.addEventListener("click", () => {
             this.activeMode = "tracker";
             this.updateView();
         });
-        const retroBtn = modeSelector.createEl("button", { 
-            text: "✨ Retro", 
-            cls: `rrm-sidebar-mode-btn ${this.activeMode === "retrospective" ? "is-active" : ""}` 
+        const retroBtn = modeSelector.createEl("button", {
+            text: "✨ Retro",
+            cls: `rrm-sidebar-mode-btn ${this.activeMode === "retrospective" ? "is-active" : ""}`
         });
         retroBtn.addEventListener("click", () => {
             this.activeMode = "retrospective";
@@ -1453,7 +1455,7 @@ class ReadingStatusSidebarView extends ItemView {
 
             // 1. Horizontal Category Tabs View
             const tabsContainer = contentEl.createDiv({ cls: "rrm-sidebar-tabs" });
-            
+
             // "All" tab
             const allTab = tabsContainer.createEl("button", { text: "All", cls: `rrm-sidebar-tab ${this.activeCategory === "All" ? "is-active" : ""}` });
             allTab.addEventListener("click", () => {
@@ -1481,7 +1483,7 @@ class ReadingStatusSidebarView extends ItemView {
 
             // Create Stats section
             const statsGrid = contentEl.createDiv({ cls: "rrm-sidebar-stats" });
-            
+
             const addStat = (label: string, count: number, cls: string) => {
                 const stat = statsGrid.createDiv({ cls: `rrm-sidebar-stat-card ${cls}` });
                 stat.createDiv({ text: label, cls: "rrm-sidebar-stat-label" });
@@ -1501,14 +1503,14 @@ class ReadingStatusSidebarView extends ItemView {
                     const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
                     for (const book of booksList) {
                         const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
-                        
+
                         const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
-                        
+
                         let displayName = book.title;
                         if (book.series) {
                             displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
                         }
-                        
+
                         const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
                         link.addEventListener("click", async (e) => {
                             e.preventDefault();
@@ -1520,12 +1522,12 @@ class ReadingStatusSidebarView extends ItemView {
 
                         // Add Star Display
                         if (book.rating > 0) {
-                            infoContainer.createDiv({ 
-                                text: "★".repeat(book.rating), 
-                                cls: "rrm-stars-display" 
+                            infoContainer.createDiv({
+                                text: "★".repeat(book.rating),
+                                cls: "rrm-stars-display"
                             });
                         }
-                        
+
                         // Add Toggle Action Button
                         let btnText = "✔ Finish";
                         if (book.status === "To Read") btnText = "📖 Read";
@@ -1548,13 +1550,13 @@ class ReadingStatusSidebarView extends ItemView {
             // Compute retrospective stats
             const totalFinished = books.filter(b => b.status === "Finished").length;
             const ratedBooks = books.filter(b => b.rating > 0);
-            const avgRating = ratedBooks.length > 0 
-                ? ratedBooks.reduce((sum, b) => sum + b.rating, 0) / ratedBooks.length 
+            const avgRating = ratedBooks.length > 0
+                ? ratedBooks.reduce((sum, b) => sum + b.rating, 0) / ratedBooks.length
                 : 0;
 
             // Rendering stats summary cards
             const statsSummary = contentEl.createDiv({ cls: "rrm-retro-stats-summary" });
-            
+
             const addRetroStat = (label: string, value: string) => {
                 const card = statsSummary.createDiv({ cls: "rrm-retro-stats-card" });
                 card.createDiv({ text: label, cls: "rrm-retro-stats-label" });
@@ -1567,7 +1569,7 @@ class ReadingStatusSidebarView extends ItemView {
 
             // --- Section 1: Favorite Categories ---
             contentEl.createEl("h4", { text: "🏷️ Favorite Categories", cls: "rrm-sidebar-section-title" });
-            
+
             const catMap = new Map<string, { total: number; ratingSum: number; ratingCount: number }>();
             books.forEach(b => {
                 const cat = b.category.trim() || "Uncategorized";
@@ -1593,13 +1595,13 @@ class ReadingStatusSidebarView extends ItemView {
                 const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
                 catStats.slice(0, 5).forEach(cat => {
                     const item = listContainer.createDiv({ cls: "rrm-retro-category-item" });
-                    
+
                     const labelDiv = item.createDiv({ cls: "rrm-retro-category-label" });
                     labelDiv.createSpan({ text: cat.name, cls: "rrm-retro-category-name" });
-                    
+
                     const ratingText = cat.avg > 0 ? `Avg: ${cat.avg.toFixed(1)} ★` : "Unrated";
                     labelDiv.createSpan({ text: `${cat.total} books (${ratingText})`, cls: "rrm-retro-category-count" });
-                    
+
                     const progressBg = item.createDiv({ cls: "rrm-retro-progress-bg" });
                     const progressFill = progressBg.createDiv({ cls: "rrm-retro-progress-fill" });
                     progressFill.style.width = cat.avg > 0 ? `${(cat.avg / 5) * 100}%` : "0%";
@@ -1608,7 +1610,7 @@ class ReadingStatusSidebarView extends ItemView {
 
             // --- Section 2: Hall of Fame (★4 and ★5) ---
             contentEl.createEl("h4", { text: "🏆 Hall of Fame", cls: "rrm-sidebar-section-title" });
-            
+
             const hallOfFame = books
                 .filter(b => b.rating >= 4)
                 .sort((a, b) => b.rating - a.rating);
@@ -1619,7 +1621,7 @@ class ReadingStatusSidebarView extends ItemView {
                 const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
                 hallOfFame.slice(0, 5).forEach(book => {
                     const item = listContainer.createDiv({ cls: "rrm-retro-hall-item" });
-                    
+
                     const infoContainer = item.createDiv({ cls: "rrm-retro-hall-info" });
                     let displayName = book.title;
                     if (book.series) {
@@ -1631,16 +1633,16 @@ class ReadingStatusSidebarView extends ItemView {
                         const leaf = this.app.workspace.getLeaf(false);
                         await leaf.openFile(book.file);
                     });
-                    
+
                     infoContainer.createDiv({ text: `By: ${book.author}`, cls: "rrm-retro-hall-meta" });
-                    
+
                     item.createDiv({ text: "★".repeat(book.rating), cls: "rrm-retro-hall-stars" });
                 });
             }
 
             // --- Section 3: Monthly Log ---
             contentEl.createEl("h4", { text: "📅 Monthly Achievements", cls: "rrm-sidebar-section-title" });
-            
+
             const monthlyMap = new Map<string, number>();
             books.filter(b => b.status === "Finished").forEach(b => {
                 let month = "Unknown";
@@ -1839,10 +1841,10 @@ export default class ReadingRecordManager extends Plugin {
     // Activates or reveals the Reading Tracker Sidebar view
     async activateSidebarView() {
         const { workspace } = this.app;
-        
+
         let leaf: WorkspaceLeaf | null = null;
         const leaves = workspace.getLeavesOfType(VIEW_TYPE_READING_STATUS);
-        
+
         if (leaves.length > 0) {
             leaf = leaves[0];
         } else {
@@ -1855,7 +1857,7 @@ export default class ReadingRecordManager extends Plugin {
                 });
             }
         }
-        
+
         if (leaf) {
             workspace.revealLeaf(leaf);
         }
@@ -2125,7 +2127,7 @@ export default class ReadingRecordManager extends Plugin {
 
         const masterListPath = "Books/Master Reading List.md";
         const files = this.app.vault.getMarkdownFiles();
-        
+
         interface BookRecord {
             file: TFile;
             title: string;
@@ -2200,6 +2202,7 @@ export default class ReadingRecordManager extends Plugin {
         const toRead = books.filter(b => b.status === "To Read").length;
         const reading = books.filter(b => b.status === "Reading").length;
         const finished = books.filter(b => b.status === "Finished").length;
+        const onHold = books.filter(b => b.status === "On Hold").length;
 
         // Apply finished hiding filter if enabled
         const filteredBooks: BookRecord[] = [];
@@ -2246,6 +2249,7 @@ export default class ReadingRecordManager extends Plugin {
         lines.push(`- **⏳ To Read:** ${toRead}`);
         lines.push(`- **📖 Reading:** ${reading}`);
         lines.push(`- **✅ Finished:** ${finished}`);
+        lines.push(`- **⏸️ On Hold:** ${onHold}`);
         if (hiddenFinishedCount > 0) {
             lines.push(`- **👻 Archived/Hidden:** ${hiddenFinishedCount} (Finished books older than ${this.settings.hideFinishedDays} days are hidden from the directory list below. You can change this in the plugin settings.)`);
         }
@@ -2254,12 +2258,12 @@ export default class ReadingRecordManager extends Plugin {
         lines.push("");
         lines.push("### 📊 振り返り分析 (Retrospective Analytics)");
         lines.push("");
-        
+
         // 1. Category stats
         lines.push("#### 🏷️ カテゴリー別集計");
         lines.push("| カテゴリー | 読了数 / 総数 | 平均評価 | レーティング進捗 |");
         lines.push("| :--- | :---: | :---: | :--- |");
-        
+
         const catMap = new Map<string, { total: number; finished: number; ratingSum: number; ratingCount: number }>();
         for (const b of books) {
             const cat = b.category.trim() || "未設定";
@@ -2276,12 +2280,12 @@ export default class ReadingRecordManager extends Plugin {
                 stat.ratingCount++;
             }
         }
-        
+
         const catStats = Array.from(catMap.entries()).map(([name, stat]) => {
             const avgRating = stat.ratingCount > 0 ? stat.ratingSum / stat.ratingCount : 0;
             return { name, ...stat, avgRating };
         }).sort((a, b) => b.total - a.total);
-        
+
         for (const cat of catStats) {
             const ratingStars = cat.avgRating > 0 ? "★" + cat.avgRating.toFixed(1) : "-";
             const barLength = 10;
@@ -2289,16 +2293,16 @@ export default class ReadingRecordManager extends Plugin {
             const barStr = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
             const pctStr = `${Math.round((cat.avgRating / 5) * 100)}%`;
             const visualBar = cat.avgRating > 0 ? `\`${barStr}\` (${pctStr})` : "-";
-            
+
             lines.push(`| ${cat.name} | ${cat.finished} / ${cat.total} | ${ratingStars} | ${visualBar} |`);
         }
         lines.push("");
-        
+
         // 2. Hall of Fame (★4 & ★5)
         lines.push("#### 🏆 殿堂入り (★4以上のおすすめ作品)");
         lines.push("| 作品名 | 著者 | カテゴリー | 評価 | 読了日 |");
         lines.push("| :--- | :--- | :--- | :---: | :--- |");
-        
+
         const hallOfFame = books
             .filter(b => b.rating >= 4)
             .sort((a, b) => {
@@ -2309,7 +2313,7 @@ export default class ReadingRecordManager extends Plugin {
                 const bTime = b.endDate ? Date.parse(b.endDate) : b.updatedParsed;
                 return bTime - aTime;
             });
-            
+
         if (hallOfFame.length === 0) {
             lines.push("| - | - | - | - | - |");
         } else {
@@ -2353,6 +2357,8 @@ export default class ReadingRecordManager extends Plugin {
                 statusBadge = `<span class="rrm-badge rrm-badge-reading">Reading</span>`;
             } else if (book.status === "Finished") {
                 statusBadge = `<span class="rrm-badge rrm-badge-finished">Finished</span>`;
+            } else if (book.status === "On Hold") {
+                statusBadge = `<span class="rrm-badge rrm-badge-on-hold">On Hold</span>`;
             } else {
                 statusBadge = book.status;
             }
