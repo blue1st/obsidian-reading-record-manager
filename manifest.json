@@ -1,7 +1,7 @@
 {
 	"id": "reading-record-manager",
 	"name": "Reading Record Manager",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "A seamless book status, reading notes, and final review manager for Obsidian.",
 	"author": "Antigravity",
