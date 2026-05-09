@@ -12,6 +12,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const noDeploy = process.argv.includes("--no-deploy");
 
 // Load environment variables from .env
 let pluginDir = null;
@@ -37,7 +38,7 @@ try {
 	console.error("[deploy] Failed to read .env file:", e);
 }
 
-if (!pluginDir) {
+if (!noDeploy && !pluginDir) {
 	console.error("❌ [deploy] Error: OBSIDIAN_PLUGIN_DIR is not defined in your .env file.");
 	console.error("Please create a '.env' file from '.env.example' and configure OBSIDIAN_PLUGIN_DIR.");
 	process.exit(1);
@@ -48,6 +49,10 @@ const deployPlugin = {
 	name: "deploy-plugin",
 	setup(build) {
 		build.onEnd(() => {
+			if (noDeploy) {
+				console.log("[deploy] --no-deploy flag detected. Skipping deployment.");
+				return;
+			}
 			if (!pluginDir) {
 				console.log("[deploy] No obsidianPluginDir specified. Skipping deployment.");
 				return;

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://unpkg.com/release-it/schema/release-it.json",
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "tagAnnotation": "Release v${version}",
+    "push": true,
+    "requireBranch": "main"
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "draft": false
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/bumper": {
+      "out": [
+        {
+          "file": "manifest.json",
+          "type": "application/json"
+        }
+      ]
+    }
+  },
+  "hooks": {
+    "before:init": [
+      "npm run build:ci"
+    ]
+  }
+}

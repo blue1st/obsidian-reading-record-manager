@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build:ci
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Create release archive
+        run: |
+          PLUGIN_ID="reading-record-manager"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          ARCHIVE_DIR="${PLUGIN_ID}"
+          mkdir -p "${ARCHIVE_DIR}"
+          cp main.js manifest.json styles.css "${ARCHIVE_DIR}/"
+          zip -r "${PLUGIN_ID}-${VERSION}.zip" "${ARCHIVE_DIR}/"
+          echo "ARCHIVE=${PLUGIN_ID}-${VERSION}.zip" >> $GITHUB_ENV
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Reading Record Manager v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            1. Download `reading-record-manager-${{ steps.version.outputs.VERSION }}.zip`
+            2. Extract to your Obsidian vault's `.obsidian/plugins/` directory
+            3. Reload Obsidian and enable the plugin in Settings → Community Plugins
+          files: |
+            ${{ env.ARCHIVE }}
+            main.js
+            manifest.json
+            styles.css
+          draft: false
+          prerelease: false

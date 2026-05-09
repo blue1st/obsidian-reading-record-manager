@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "build:ci": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production --no-deploy",
+    "release": "release-it"
   },
   "keywords": [
     "obsidian",
@@ -17,10 +19,12 @@
   "author": "Antigravity",
   "license": "MIT",
   "devDependencies": {
+    "@release-it/bumper": "^7.0.5",
     "@types/node": "^20.11.0",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.20.0",
     "obsidian": "^1.5.0",
+    "release-it": "^20.0.1",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3"
   }
