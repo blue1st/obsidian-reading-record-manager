@@ -60,6 +60,7 @@ class AddBookModal extends Modal {
         category: string;
         subcategory: string;
         status: string;
+        rating: number;
     }) => void;
 
     // Data structures for auto-suggest
@@ -229,6 +230,34 @@ class AddBookModal extends Modal {
         statusSelect.createEl("option", { text: "To Read", value: "To Read" });
         statusSelect.createEl("option", { text: "Reading", value: "Reading" });
         statusSelect.createEl("option", { text: "Finished", value: "Finished" });
+
+        // Rating Field
+        const ratingGroup = form.createDiv({ cls: "rrm-field-group" });
+        ratingGroup.createEl("label", { text: "Rating" });
+        const ratingInputContainer = ratingGroup.createDiv({ cls: "rrm-rating-input" });
+        let selectedRating = 0;
+        const stars: HTMLSpanElement[] = [];
+        for (let i = 1; i <= 5; i++) {
+            const star = ratingInputContainer.createSpan({ text: "★", cls: "rrm-star" });
+            star.addEventListener("click", () => {
+                if (selectedRating === i) {
+                    selectedRating = 0; // Toggle off if clicked again
+                } else {
+                    selectedRating = i;
+                }
+                updateStarsDisplay();
+            });
+            stars.push(star);
+        }
+        const updateStarsDisplay = () => {
+            stars.forEach((star, idx) => {
+                if (idx < selectedRating) {
+                    star.addClass("is-selected");
+                } else {
+                    star.removeClass("is-selected");
+                }
+            });
+        };
 
         // Action Buttons
         const buttonsContainer = form.createDiv({ cls: "rrm-buttons" });
@@ -600,7 +629,8 @@ class AddBookModal extends Modal {
                 volume: volumeVal,
                 category: categoryVal,
                 subcategory: subcategoryVal,
-                status: statusVal
+                status: statusVal,
+                rating: selectedRating
             });
         };
 
@@ -637,6 +667,7 @@ class EditBookModal extends Modal {
         category: string;
         subcategory: string;
         status: string;
+        rating: number;
     };
     onSubmit: (result: {
         title: string;
@@ -646,6 +677,7 @@ class EditBookModal extends Modal {
         category: string;
         subcategory: string;
         status: string;
+        rating: number;
     }) => void;
 
     // Data structures for auto-suggest
@@ -823,6 +855,35 @@ class EditBookModal extends Modal {
         statusSelect.createEl("option", { text: "Reading", value: "Reading" });
         statusSelect.createEl("option", { text: "Finished", value: "Finished" });
         statusSelect.value = this.initialData.status || "To Read";
+
+        // Rating Field
+        const ratingGroup = form.createDiv({ cls: "rrm-field-group" });
+        ratingGroup.createEl("label", { text: "Rating" });
+        const ratingInputContainer = ratingGroup.createDiv({ cls: "rrm-rating-input" });
+        let selectedRating = this.initialData.rating || 0;
+        const stars: HTMLSpanElement[] = [];
+        for (let i = 1; i <= 5; i++) {
+            const star = ratingInputContainer.createSpan({ text: "★", cls: "rrm-star" });
+            star.addEventListener("click", () => {
+                if (selectedRating === i) {
+                    selectedRating = 0; // Toggle off if clicked again
+                } else {
+                    selectedRating = i;
+                }
+                updateStarsDisplay();
+            });
+            stars.push(star);
+        }
+        const updateStarsDisplay = () => {
+            stars.forEach((star, idx) => {
+                if (idx < selectedRating) {
+                    star.addClass("is-selected");
+                } else {
+                    star.removeClass("is-selected");
+                }
+            });
+        };
+        updateStarsDisplay(); // Call initial pre-fill
 
         // Action Buttons
         const buttonsContainer = form.createDiv({ cls: "rrm-buttons" });
@@ -1194,7 +1255,8 @@ class EditBookModal extends Modal {
                 volume: volumeVal,
                 category: categoryVal,
                 subcategory: subcategoryVal,
-                status: statusVal
+                status: statusVal,
+                rating: selectedRating
             });
         };
 
@@ -1281,6 +1343,7 @@ export const VIEW_TYPE_READING_STATUS = "reading-status-sidebar-view";
 // Custom Sidebar Reading Tracker View
 class ReadingStatusSidebarView extends ItemView {
     plugin: ReadingRecordManager;
+    activeCategory: string = "All";
 
     constructor(leaf: WorkspaceLeaf, plugin: ReadingRecordManager) {
         super(leaf);
@@ -1326,6 +1389,8 @@ class ReadingStatusSidebarView extends ItemView {
             status: string;
             series: string;
             volume: string;
+            category: string;
+            rating: number;
         }
         const books: BookItem[] = [];
 
@@ -1342,16 +1407,52 @@ class ReadingStatusSidebarView extends ItemView {
                     author: fm?.author || "Unknown",
                     status: fm?.status || "To Read",
                     series: fm?.series || "",
-                    volume: fm?.volume || ""
+                    volume: fm?.volume || "",
+                    category: fm?.category || "",
+                    rating: fm?.rating || 0
                 });
             }
         }
 
         const total = books.length;
         titleEl.setText(`📚 Book Tracker (${total})`);
-        const toRead = books.filter(b => b.status === "To Read").length;
-        const reading = books.filter(b => b.status === "Reading").length;
-        const finished = books.filter(b => b.status === "Finished").length;
+
+        // Categories list for dynamic tab creation
+        const categoriesSet = new Set<string>();
+        books.forEach(b => {
+            if (b.category && b.category.trim()) {
+                categoriesSet.add(b.category.trim());
+            }
+        });
+        const categories = Array.from(categoriesSet).sort();
+
+        // 1. Horizontal Category Tabs View
+        const tabsContainer = contentEl.createDiv({ cls: "rrm-sidebar-tabs" });
+        
+        // "All" tab
+        const allTab = tabsContainer.createEl("button", { text: "All", cls: `rrm-sidebar-tab ${this.activeCategory === "All" ? "is-active" : ""}` });
+        allTab.addEventListener("click", () => {
+            this.activeCategory = "All";
+            this.updateView();
+        });
+
+        // Specific category tabs
+        categories.forEach(cat => {
+            const tab = tabsContainer.createEl("button", { text: cat, cls: `rrm-sidebar-tab ${this.activeCategory === cat ? "is-active" : ""}` });
+            tab.addEventListener("click", () => {
+                this.activeCategory = cat;
+                this.updateView();
+            });
+        });
+
+        // Filter books based on active category
+        const filteredBooks = this.activeCategory === "All"
+            ? books
+            : books.filter(b => b.category === this.activeCategory);
+
+        const toRead = filteredBooks.filter(b => b.status === "To Read").length;
+        const reading = filteredBooks.filter(b => b.status === "Reading").length;
+        const finished = filteredBooks.filter(b => b.status === "Finished").length;
 
         // Create Stats section
         const statsGrid = contentEl.createDiv({ cls: "rrm-sidebar-stats" });
@@ -1366,41 +1467,58 @@ class ReadingStatusSidebarView extends ItemView {
         addStat("📖 Reading", reading, "reading");
         addStat("✅ Finished", finished, "finished");
 
-        // "Currently Reading" section
-        contentEl.createEl("h4", { text: "📖 Currently Reading", cls: "rrm-sidebar-section-title" });
-        const readingBooks = books.filter(b => b.status === "Reading");
+        // Helper function to render a list of book cards
+        const renderBookList = (booksList: BookItem[], title: string, emptyMsg: string) => {
+            contentEl.createEl("h4", { text: title, cls: "rrm-sidebar-section-title" });
+            if (booksList.length === 0) {
+                contentEl.createEl("div", { text: emptyMsg, cls: "rrm-sidebar-empty-text" });
+            } else {
+                const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
+                for (const book of booksList) {
+                    const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
+                    
+                    const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
+                    
+                    let displayName = book.title;
+                    if (book.series) {
+                        displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
+                    }
+                    
+                    const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
+                    link.addEventListener("click", async (e) => {
+                        e.preventDefault();
+                        const leaf = this.app.workspace.getLeaf(false);
+                        await leaf.openFile(book.file);
+                    });
 
-        if (readingBooks.length === 0) {
-            contentEl.createEl("div", { text: "No books in progress.", cls: "rrm-sidebar-empty-text" });
-        } else {
-            const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
-            for (const book of readingBooks) {
-                const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
-                
-                const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
-                
-                let displayName = book.title;
-                if (book.series) {
-                    displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
+                    infoContainer.createEl("div", { text: `By: ${book.author}`, cls: "rrm-sidebar-item-author" });
+
+                    // Add Star Display
+                    if (book.rating > 0) {
+                        infoContainer.createDiv({ 
+                            text: "★".repeat(book.rating), 
+                            cls: "rrm-stars-display" 
+                        });
+                    }
+                    
+                    // Add Toggle Action Button
+                    let btnText = "✔ Finish";
+                    if (book.status === "To Read") btnText = "📖 Read";
+                    else if (book.status === "Finished") btnText = "🔄 Cycle";
+
+                    const btn = item.createEl("button", { text: btnText, cls: "rrm-sidebar-item-btn" });
+                    btn.addEventListener("click", async () => {
+                        await this.plugin.toggleBookStatus(book.file);
+                        await this.updateView();
+                    });
                 }
-                
-                const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
-                link.addEventListener("click", async (e) => {
-                    e.preventDefault();
-                    const leaf = this.app.workspace.getLeaf(false);
-                    await leaf.openFile(book.file);
-                });
-
-                infoContainer.createEl("div", { text: `By: ${book.author}`, cls: "rrm-sidebar-item-author" });
-
-                // Add Toggle Action Button
-                const btn = item.createEl("button", { text: "✔ Finish", cls: "rrm-sidebar-item-btn" });
-                btn.addEventListener("click", async () => {
-                    await this.plugin.toggleBookStatus(book.file);
-                    await this.updateView();
-                });
             }
-        }
+        };
+
+        // Sections
+        renderBookList(filteredBooks.filter(b => b.status === "Reading"), "📖 Currently Reading", "No books in progress.");
+        renderBookList(filteredBooks.filter(b => b.status === "To Read"), "⏳ To Read", "No books on your shelf.");
+        renderBookList(filteredBooks.filter(b => b.status === "Finished"), "✅ Finished", "No completed books yet.");
 
         // Add quick command action list
         contentEl.createEl("h4", { text: "⚡ Quick Actions", cls: "rrm-sidebar-section-title" });
@@ -1599,7 +1717,7 @@ export default class ReadingRecordManager extends Plugin {
     // Opens the Modal to add a new book and creates the Markdown file
     openAddBookModal() {
         new AddBookModal(this.app, async (result) => {
-            const { title, author, seriesName, volume, category, subcategory, status } = result;
+            const { title, author, seriesName, volume, category, subcategory, status, rating } = result;
 
             // Resolve file paths and directories
             let parentFolder = "Books";
@@ -1648,6 +1766,7 @@ export default class ReadingRecordManager extends Plugin {
                 `volume: "${escapedVolume}"`,
                 `category: "${escapedCategory}"`,
                 `subcategory: "${escapedSubcategory}"`,
+                `rating: ${rating}`,
                 `updated: ${updatedTime}`
             ];
 
@@ -1709,11 +1828,12 @@ export default class ReadingRecordManager extends Plugin {
             volume: frontmatter?.volume || "",
             category: frontmatter?.category || "",
             subcategory: frontmatter?.subcategory || "",
-            status: frontmatter?.status || "To Read"
+            status: frontmatter?.status || "To Read",
+            rating: frontmatter?.rating || 0
         };
 
         new EditBookModal(this.app, initialData, async (result) => {
-            const { title, author, seriesName, volume, category, subcategory, status } = result;
+            const { title, author, seriesName, volume, category, subcategory, status, rating } = result;
 
             // Resolve folder and file paths
             let parentFolder = "Books";
@@ -1757,6 +1877,7 @@ export default class ReadingRecordManager extends Plugin {
                     fm.volume = volume.trim();
                     fm.category = category.trim();
                     fm.subcategory = subcategory.trim();
+                    fm.rating = rating;
                     fm.updated = formatDateTime(new Date());
 
                     if (status === "Finished") {
@@ -1852,6 +1973,9 @@ export default class ReadingRecordManager extends Plugin {
 
     // Generates or updates the "Master Reading List" Markdown Table
     async updateMasterReadingList(showNotification = true) {
+        // Buffer delay to allow Obsidian's background indexer to parse the modified markdown file and update its metadata cache
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const masterListPath = "Books/Master Reading List.md";
         const files = this.app.vault.getMarkdownFiles();
         
@@ -1864,6 +1988,7 @@ export default class ReadingRecordManager extends Plugin {
             category: string;
             subcategory: string;
             status: string;
+            rating: number;
             updated: string;
             updatedParsed: number;
             endDate: string;
@@ -1887,6 +2012,7 @@ export default class ReadingRecordManager extends Plugin {
                 const volume = frontmatter?.volume || "";
                 const category = frontmatter?.category || "";
                 const subcategory = frontmatter?.subcategory || "";
+                const rating = Number(frontmatter?.rating) || 0;
                 const updated = frontmatter?.updated || "";
                 const endDate = frontmatter?.end_date || "";
                 const title = frontmatter?.title || file.basename;
@@ -1911,6 +2037,7 @@ export default class ReadingRecordManager extends Plugin {
                     category,
                     subcategory,
                     status,
+                    rating,
                     updated: updated || formatDate(new Date(file.stat.mtime)),
                     updatedParsed,
                     endDate
@@ -1980,8 +2107,8 @@ export default class ReadingRecordManager extends Plugin {
         lines.push("");
         lines.push("### 📖 Book Directory");
         lines.push("");
-        lines.push("| Book / Volume | Author | Series | Vol | Category | Subcategory | Status | Last Updated | End Date |");
-        lines.push("| :--- | :--- | :--- | :---: | :--- | :--- | :---: | :--- | :--- |");
+        lines.push("| Book / Volume | Author | Series | Vol | Category | Subcategory | Status | Rating | Last Updated | End Date |");
+        lines.push("| :--- | :--- | :--- | :---: | :--- | :--- | :---: | :---: | :--- | :--- |");
 
         for (const book of filteredBooks) {
             // Determine display name for link
@@ -2009,7 +2136,9 @@ export default class ReadingRecordManager extends Plugin {
                 statusBadge = book.status;
             }
 
-            lines.push(`| ${fileLink} | ${book.author} | ${book.series || "-"} | ${book.volume || "-"} | ${book.category || "-"} | ${book.subcategory || "-"} | ${statusBadge} | ${book.updated} | ${book.endDate || "-"} |`);
+            const ratingStars = book.rating ? "★".repeat(book.rating) : "-";
+
+            lines.push(`| ${fileLink} | ${book.author} | ${book.series || "-"} | ${book.volume || "-"} | ${book.category || "-"} | ${book.subcategory || "-"} | ${statusBadge} | ${ratingStars} | ${book.updated} | ${book.endDate || "-"} |`);
         }
 
         const masterListContent = lines.join("\n");

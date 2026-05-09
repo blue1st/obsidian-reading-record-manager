@@ -414,3 +414,81 @@
     font-size: 1rem;
 }
 
+/* Rating Selector UI styling */
+.rrm-rating-input {
+    display: flex;
+    gap: 0.25rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.rrm-rating-input .rrm-star {
+    color: var(--text-faint);
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.rrm-rating-input .rrm-star:hover {
+    transform: scale(1.15);
+}
+
+.rrm-rating-input .rrm-star.is-selected {
+    color: #f59e0b; /* Golden Yellow */
+}
+
+/* Sidebar Tabs UI */
+.rrm-sidebar-tabs {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-top: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 0.5rem;
+    flex-shrink: 0; /* Prevent the flexbox engine from shrinking the tabs vertically */
+}
+
+.rrm-sidebar-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.rrm-sidebar-tabs::-webkit-scrollbar-thumb {
+    background-color: var(--background-modifier-border);
+    border-radius: 3px;
+}
+
+.rrm-sidebar-tab {
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+    height: auto; /* Override fixed button heights from other themes */
+    line-height: 1.2; /* Consistent text alignment */
+    flex-shrink: 0;
+}
+
+.rrm-sidebar-tab:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.rrm-sidebar-tab.is-active {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+}
+
+/* Star display in list */
+.rrm-stars-display {
+    color: #f59e0b;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+
