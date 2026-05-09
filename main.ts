@@ -1344,6 +1344,7 @@ export const VIEW_TYPE_READING_STATUS = "reading-status-sidebar-view";
 class ReadingStatusSidebarView extends ItemView {
     plugin: ReadingRecordManager;
     activeCategory: string = "All";
+    activeMode: "tracker" | "retrospective" = "tracker";
 
     constructor(leaf: WorkspaceLeaf, plugin: ReadingRecordManager) {
         super(leaf);
@@ -1391,6 +1392,8 @@ class ReadingStatusSidebarView extends ItemView {
             volume: string;
             category: string;
             rating: number;
+            endDate: string;
+            updated: string;
         }
         const books: BookItem[] = [];
 
@@ -1409,7 +1412,9 @@ class ReadingStatusSidebarView extends ItemView {
                     series: fm?.series || "",
                     volume: fm?.volume || "",
                     category: fm?.category || "",
-                    rating: fm?.rating || 0
+                    rating: fm?.rating || 0,
+                    endDate: fm?.end_date || "",
+                    updated: fm?.updated || ""
                 });
             }
         }
@@ -1417,108 +1422,250 @@ class ReadingStatusSidebarView extends ItemView {
         const total = books.length;
         titleEl.setText(`📚 Book Tracker (${total})`);
 
-        // Categories list for dynamic tab creation
-        const categoriesSet = new Set<string>();
-        books.forEach(b => {
-            if (b.category && b.category.trim()) {
-                categoriesSet.add(b.category.trim());
-            }
+        // Mode switch buttons
+        const modeSelector = contentEl.createDiv({ cls: "rrm-sidebar-mode-selector" });
+        const trackerBtn = modeSelector.createEl("button", { 
+            text: "📝 Tracker", 
+            cls: `rrm-sidebar-mode-btn ${this.activeMode === "tracker" ? "is-active" : ""}` 
         });
-        const categories = Array.from(categoriesSet).sort();
-
-        // 1. Horizontal Category Tabs View
-        const tabsContainer = contentEl.createDiv({ cls: "rrm-sidebar-tabs" });
-        
-        // "All" tab
-        const allTab = tabsContainer.createEl("button", { text: "All", cls: `rrm-sidebar-tab ${this.activeCategory === "All" ? "is-active" : ""}` });
-        allTab.addEventListener("click", () => {
-            this.activeCategory = "All";
+        trackerBtn.addEventListener("click", () => {
+            this.activeMode = "tracker";
+            this.updateView();
+        });
+        const retroBtn = modeSelector.createEl("button", { 
+            text: "✨ Retro", 
+            cls: `rrm-sidebar-mode-btn ${this.activeMode === "retrospective" ? "is-active" : ""}` 
+        });
+        retroBtn.addEventListener("click", () => {
+            this.activeMode = "retrospective";
             this.updateView();
         });
 
-        // Specific category tabs
-        categories.forEach(cat => {
-            const tab = tabsContainer.createEl("button", { text: cat, cls: `rrm-sidebar-tab ${this.activeCategory === cat ? "is-active" : ""}` });
-            tab.addEventListener("click", () => {
-                this.activeCategory = cat;
+        if (this.activeMode === "tracker") {
+            // Categories list for dynamic tab creation
+            const categoriesSet = new Set<string>();
+            books.forEach(b => {
+                if (b.category && b.category.trim()) {
+                    categoriesSet.add(b.category.trim());
+                }
+            });
+            const categories = Array.from(categoriesSet).sort();
+
+            // 1. Horizontal Category Tabs View
+            const tabsContainer = contentEl.createDiv({ cls: "rrm-sidebar-tabs" });
+            
+            // "All" tab
+            const allTab = tabsContainer.createEl("button", { text: "All", cls: `rrm-sidebar-tab ${this.activeCategory === "All" ? "is-active" : ""}` });
+            allTab.addEventListener("click", () => {
+                this.activeCategory = "All";
                 this.updateView();
             });
-        });
 
-        // Filter books based on active category
-        const filteredBooks = this.activeCategory === "All"
-            ? books
-            : books.filter(b => b.category === this.activeCategory);
+            // Specific category tabs
+            categories.forEach(cat => {
+                const tab = tabsContainer.createEl("button", { text: cat, cls: `rrm-sidebar-tab ${this.activeCategory === cat ? "is-active" : ""}` });
+                tab.addEventListener("click", () => {
+                    this.activeCategory = cat;
+                    this.updateView();
+                });
+            });
 
-        const toRead = filteredBooks.filter(b => b.status === "To Read").length;
-        const reading = filteredBooks.filter(b => b.status === "Reading").length;
-        const finished = filteredBooks.filter(b => b.status === "Finished").length;
+            // Filter books based on active category
+            const filteredBooks = this.activeCategory === "All"
+                ? books
+                : books.filter(b => b.category === this.activeCategory);
 
-        // Create Stats section
-        const statsGrid = contentEl.createDiv({ cls: "rrm-sidebar-stats" });
-        
-        const addStat = (label: string, count: number, cls: string) => {
-            const stat = statsGrid.createDiv({ cls: `rrm-sidebar-stat-card ${cls}` });
-            stat.createDiv({ text: label, cls: "rrm-sidebar-stat-label" });
-            stat.createDiv({ text: String(count), cls: "rrm-sidebar-stat-count" });
-        };
+            const toRead = filteredBooks.filter(b => b.status === "To Read").length;
+            const reading = filteredBooks.filter(b => b.status === "Reading").length;
+            const finished = filteredBooks.filter(b => b.status === "Finished").length;
 
-        addStat("⏳ To Read", toRead, "to-read");
-        addStat("📖 Reading", reading, "reading");
-        addStat("✅ Finished", finished, "finished");
+            // Create Stats section
+            const statsGrid = contentEl.createDiv({ cls: "rrm-sidebar-stats" });
+            
+            const addStat = (label: string, count: number, cls: string) => {
+                const stat = statsGrid.createDiv({ cls: `rrm-sidebar-stat-card ${cls}` });
+                stat.createDiv({ text: label, cls: "rrm-sidebar-stat-label" });
+                stat.createDiv({ text: String(count), cls: "rrm-sidebar-stat-count" });
+            };
 
-        // Helper function to render a list of book cards
-        const renderBookList = (booksList: BookItem[], title: string, emptyMsg: string) => {
-            contentEl.createEl("h4", { text: title, cls: "rrm-sidebar-section-title" });
-            if (booksList.length === 0) {
-                contentEl.createEl("div", { text: emptyMsg, cls: "rrm-sidebar-empty-text" });
+            addStat("⏳ To Read", toRead, "to-read");
+            addStat("📖 Reading", reading, "reading");
+            addStat("✅ Finished", finished, "finished");
+
+            // Helper function to render a list of book cards
+            const renderBookList = (booksList: BookItem[], title: string, emptyMsg: string) => {
+                contentEl.createEl("h4", { text: title, cls: "rrm-sidebar-section-title" });
+                if (booksList.length === 0) {
+                    contentEl.createEl("div", { text: emptyMsg, cls: "rrm-sidebar-empty-text" });
+                } else {
+                    const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
+                    for (const book of booksList) {
+                        const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
+                        
+                        const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
+                        
+                        let displayName = book.title;
+                        if (book.series) {
+                            displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
+                        }
+                        
+                        const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
+                        link.addEventListener("click", async (e) => {
+                            e.preventDefault();
+                            const leaf = this.app.workspace.getLeaf(false);
+                            await leaf.openFile(book.file);
+                        });
+
+                        infoContainer.createEl("div", { text: `By: ${book.author}`, cls: "rrm-sidebar-item-author" });
+
+                        // Add Star Display
+                        if (book.rating > 0) {
+                            infoContainer.createDiv({ 
+                                text: "★".repeat(book.rating), 
+                                cls: "rrm-stars-display" 
+                            });
+                        }
+                        
+                        // Add Toggle Action Button
+                        let btnText = "✔ Finish";
+                        if (book.status === "To Read") btnText = "📖 Read";
+                        else if (book.status === "Finished") btnText = "🔄 Cycle";
+
+                        const btn = item.createEl("button", { text: btnText, cls: "rrm-sidebar-item-btn" });
+                        btn.addEventListener("click", async () => {
+                            await this.plugin.toggleBookStatus(book.file);
+                            await this.updateView();
+                        });
+                    }
+                }
+            };
+
+            // Sections
+            renderBookList(filteredBooks.filter(b => b.status === "Reading"), "📖 Currently Reading", "No books in progress.");
+            renderBookList(filteredBooks.filter(b => b.status === "To Read"), "⏳ To Read", "No books on your shelf.");
+            renderBookList(filteredBooks.filter(b => b.status === "Finished"), "✅ Finished", "No completed books yet.");
+        } else {
+            // Compute retrospective stats
+            const totalFinished = books.filter(b => b.status === "Finished").length;
+            const ratedBooks = books.filter(b => b.rating > 0);
+            const avgRating = ratedBooks.length > 0 
+                ? ratedBooks.reduce((sum, b) => sum + b.rating, 0) / ratedBooks.length 
+                : 0;
+
+            // Rendering stats summary cards
+            const statsSummary = contentEl.createDiv({ cls: "rrm-retro-stats-summary" });
+            
+            const addRetroStat = (label: string, value: string) => {
+                const card = statsSummary.createDiv({ cls: "rrm-retro-stats-card" });
+                card.createDiv({ text: label, cls: "rrm-retro-stats-label" });
+                card.createDiv({ text: value, cls: "rrm-retro-stats-value" });
+            };
+
+            addRetroStat("Total Books", String(books.length));
+            addRetroStat("✅ Finished", String(totalFinished));
+            addRetroStat("⭐ Avg Rating", avgRating > 0 ? `${avgRating.toFixed(1)} ★` : "-");
+
+            // --- Section 1: Favorite Categories ---
+            contentEl.createEl("h4", { text: "🏷️ Favorite Categories", cls: "rrm-sidebar-section-title" });
+            
+            const catMap = new Map<string, { total: number; ratingSum: number; ratingCount: number }>();
+            books.forEach(b => {
+                const cat = b.category.trim() || "Uncategorized";
+                if (!catMap.has(cat)) {
+                    catMap.set(cat, { total: 0, ratingSum: 0, ratingCount: 0 });
+                }
+                const stat = catMap.get(cat)!;
+                stat.total++;
+                if (b.rating > 0) {
+                    stat.ratingSum += b.rating;
+                    stat.ratingCount++;
+                }
+            });
+
+            const catStats = Array.from(catMap.entries()).map(([name, stat]) => {
+                const avg = stat.ratingCount > 0 ? stat.ratingSum / stat.ratingCount : 0;
+                return { name, total: stat.total, avg };
+            }).sort((a, b) => b.total - a.total); // Sort by item count descending
+
+            if (catStats.length === 0) {
+                contentEl.createDiv({ text: "No categories recorded.", cls: "rrm-sidebar-empty-text" });
             } else {
                 const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
-                for (const book of booksList) {
-                    const item = listContainer.createDiv({ cls: "rrm-sidebar-item" });
+                catStats.slice(0, 5).forEach(cat => {
+                    const item = listContainer.createDiv({ cls: "rrm-retro-category-item" });
                     
-                    const infoContainer = item.createDiv({ cls: "rrm-sidebar-item-info" });
+                    const labelDiv = item.createDiv({ cls: "rrm-retro-category-label" });
+                    labelDiv.createSpan({ text: cat.name, cls: "rrm-retro-category-name" });
                     
+                    const ratingText = cat.avg > 0 ? `Avg: ${cat.avg.toFixed(1)} ★` : "Unrated";
+                    labelDiv.createSpan({ text: `${cat.total} books (${ratingText})`, cls: "rrm-retro-category-count" });
+                    
+                    const progressBg = item.createDiv({ cls: "rrm-retro-progress-bg" });
+                    const progressFill = progressBg.createDiv({ cls: "rrm-retro-progress-fill" });
+                    progressFill.style.width = cat.avg > 0 ? `${(cat.avg / 5) * 100}%` : "0%";
+                });
+            }
+
+            // --- Section 2: Hall of Fame (★4 and ★5) ---
+            contentEl.createEl("h4", { text: "🏆 Hall of Fame", cls: "rrm-sidebar-section-title" });
+            
+            const hallOfFame = books
+                .filter(b => b.rating >= 4)
+                .sort((a, b) => b.rating - a.rating);
+
+            if (hallOfFame.length === 0) {
+                contentEl.createDiv({ text: "No books rated ★4 or ★5 yet.", cls: "rrm-sidebar-empty-text" });
+            } else {
+                const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
+                hallOfFame.slice(0, 5).forEach(book => {
+                    const item = listContainer.createDiv({ cls: "rrm-retro-hall-item" });
+                    
+                    const infoContainer = item.createDiv({ cls: "rrm-retro-hall-info" });
                     let displayName = book.title;
                     if (book.series) {
                         displayName = book.volume ? `${book.series} (${book.volume})` : book.series;
                     }
-                    
-                    const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-sidebar-item-title" });
+                    const link = infoContainer.createEl("a", { text: displayName, cls: "rrm-retro-hall-title" });
                     link.addEventListener("click", async (e) => {
                         e.preventDefault();
                         const leaf = this.app.workspace.getLeaf(false);
                         await leaf.openFile(book.file);
                     });
-
-                    infoContainer.createEl("div", { text: `By: ${book.author}`, cls: "rrm-sidebar-item-author" });
-
-                    // Add Star Display
-                    if (book.rating > 0) {
-                        infoContainer.createDiv({ 
-                            text: "★".repeat(book.rating), 
-                            cls: "rrm-stars-display" 
-                        });
-                    }
                     
-                    // Add Toggle Action Button
-                    let btnText = "✔ Finish";
-                    if (book.status === "To Read") btnText = "📖 Read";
-                    else if (book.status === "Finished") btnText = "🔄 Cycle";
-
-                    const btn = item.createEl("button", { text: btnText, cls: "rrm-sidebar-item-btn" });
-                    btn.addEventListener("click", async () => {
-                        await this.plugin.toggleBookStatus(book.file);
-                        await this.updateView();
-                    });
-                }
+                    infoContainer.createDiv({ text: `By: ${book.author}`, cls: "rrm-retro-hall-meta" });
+                    
+                    item.createDiv({ text: "★".repeat(book.rating), cls: "rrm-retro-hall-stars" });
+                });
             }
-        };
 
-        // Sections
-        renderBookList(filteredBooks.filter(b => b.status === "Reading"), "📖 Currently Reading", "No books in progress.");
-        renderBookList(filteredBooks.filter(b => b.status === "To Read"), "⏳ To Read", "No books on your shelf.");
-        renderBookList(filteredBooks.filter(b => b.status === "Finished"), "✅ Finished", "No completed books yet.");
+            // --- Section 3: Monthly Log ---
+            contentEl.createEl("h4", { text: "📅 Monthly Achievements", cls: "rrm-sidebar-section-title" });
+            
+            const monthlyMap = new Map<string, number>();
+            books.filter(b => b.status === "Finished").forEach(b => {
+                let month = "Unknown";
+                if (b.endDate) {
+                    month = b.endDate.substring(0, 7); // "YYYY-MM"
+                } else if (b.updated) {
+                    month = b.updated.substring(0, 7); // "YYYY-MM"
+                }
+                monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
+            });
+
+            const monthlyStats = Array.from(monthlyMap.entries())
+                .sort((a, b) => b[0].localeCompare(a[0])); // Sort descending by month
+
+            if (monthlyStats.length === 0) {
+                contentEl.createDiv({ text: "No completed books recorded yet.", cls: "rrm-sidebar-empty-text" });
+            } else {
+                const listContainer = contentEl.createDiv({ cls: "rrm-sidebar-list" });
+                monthlyStats.slice(0, 5).forEach(([month, count]) => {
+                    const item = listContainer.createDiv({ cls: "rrm-retro-monthly-item" });
+                    item.createDiv({ text: month, cls: "rrm-retro-monthly-month" });
+                    item.createDiv({ text: `${count} books`, cls: "rrm-retro-monthly-count" });
+                });
+            }
+        }
 
         // Add quick command action list
         contentEl.createEl("h4", { text: "⚡ Quick Actions", cls: "rrm-sidebar-section-title" });
@@ -2101,6 +2248,80 @@ export default class ReadingRecordManager extends Plugin {
         lines.push(`- **✅ Finished:** ${finished}`);
         if (hiddenFinishedCount > 0) {
             lines.push(`- **👻 Archived/Hidden:** ${hiddenFinishedCount} (Finished books older than ${this.settings.hideFinishedDays} days are hidden from the directory list below. You can change this in the plugin settings.)`);
+        }
+        lines.push("");
+        lines.push("---");
+        lines.push("");
+        lines.push("### 📊 振り返り分析 (Retrospective Analytics)");
+        lines.push("");
+        
+        // 1. Category stats
+        lines.push("#### 🏷️ カテゴリー別集計");
+        lines.push("| カテゴリー | 読了数 / 総数 | 平均評価 | レーティング進捗 |");
+        lines.push("| :--- | :---: | :---: | :--- |");
+        
+        const catMap = new Map<string, { total: number; finished: number; ratingSum: number; ratingCount: number }>();
+        for (const b of books) {
+            const cat = b.category.trim() || "未設定";
+            if (!catMap.has(cat)) {
+                catMap.set(cat, { total: 0, finished: 0, ratingSum: 0, ratingCount: 0 });
+            }
+            const stat = catMap.get(cat)!;
+            stat.total++;
+            if (b.status === "Finished") {
+                stat.finished++;
+            }
+            if (b.rating > 0) {
+                stat.ratingSum += b.rating;
+                stat.ratingCount++;
+            }
+        }
+        
+        const catStats = Array.from(catMap.entries()).map(([name, stat]) => {
+            const avgRating = stat.ratingCount > 0 ? stat.ratingSum / stat.ratingCount : 0;
+            return { name, ...stat, avgRating };
+        }).sort((a, b) => b.total - a.total);
+        
+        for (const cat of catStats) {
+            const ratingStars = cat.avgRating > 0 ? "★" + cat.avgRating.toFixed(1) : "-";
+            const barLength = 10;
+            const filledLength = Math.round((cat.avgRating / 5) * barLength);
+            const barStr = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
+            const pctStr = `${Math.round((cat.avgRating / 5) * 100)}%`;
+            const visualBar = cat.avgRating > 0 ? `\`${barStr}\` (${pctStr})` : "-";
+            
+            lines.push(`| ${cat.name} | ${cat.finished} / ${cat.total} | ${ratingStars} | ${visualBar} |`);
+        }
+        lines.push("");
+        
+        // 2. Hall of Fame (★4 & ★5)
+        lines.push("#### 🏆 殿堂入り (★4以上のおすすめ作品)");
+        lines.push("| 作品名 | 著者 | カテゴリー | 評価 | 読了日 |");
+        lines.push("| :--- | :--- | :--- | :---: | :--- |");
+        
+        const hallOfFame = books
+            .filter(b => b.rating >= 4)
+            .sort((a, b) => {
+                if (b.rating !== a.rating) {
+                    return b.rating - a.rating;
+                }
+                const aTime = a.endDate ? Date.parse(a.endDate) : a.updatedParsed;
+                const bTime = b.endDate ? Date.parse(b.endDate) : b.updatedParsed;
+                return bTime - aTime;
+            });
+            
+        if (hallOfFame.length === 0) {
+            lines.push("| - | - | - | - | - |");
+        } else {
+            for (const b of hallOfFame) {
+                let displayName = b.title;
+                if (b.series) {
+                    displayName = b.volume ? `${b.series} (Vol ${b.volume})` : `${b.series} - ${b.title}`;
+                }
+                const fileLink = `[[${b.file.path}\\|${displayName}]]`;
+                const ratingStars = "★".repeat(b.rating);
+                lines.push(`| ${fileLink} | ${b.author} | ${b.category || "-"} | ${ratingStars} | ${b.endDate || "-"} |`);
+            }
         }
         lines.push("");
         lines.push("---");
