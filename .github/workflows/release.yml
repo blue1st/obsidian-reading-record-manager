@@ -55,8 +55,5 @@ jobs:
             3. Reload Obsidian and enable the plugin in Settings → Community Plugins
           files: |
             ${{ env.ARCHIVE }}
-            main.js
-            manifest.json
-            styles.css
           draft: false
           prerelease: false
