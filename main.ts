@@ -186,7 +186,7 @@ class AddBookModal extends Modal {
 
         // Author Field
         const authorGroup = form.createDiv({ cls: "rrm-field-group" });
-        authorGroup.createEl("label", { text: "Author *" });
+        authorGroup.createEl("label", { text: "Author (Optional)" });
         const authorInput = authorGroup.createEl("input", {
             type: "text",
             cls: "rrm-input",
@@ -616,11 +616,7 @@ class AddBookModal extends Modal {
                 titleInput.focus();
                 return;
             }
-            if (!authorVal) {
-                new Notice("Error: Author is a required field.");
-                authorInput.focus();
-                return;
-            }
+
 
             this.close();
             this.onSubmit({
@@ -808,7 +804,7 @@ class EditBookModal extends Modal {
 
         // Author Field
         const authorGroup = form.createDiv({ cls: "rrm-field-group" });
-        authorGroup.createEl("label", { text: "Author *" });
+        authorGroup.createEl("label", { text: "Author (Optional)" });
         const authorInput = authorGroup.createEl("input", {
             type: "text",
             cls: "rrm-input",
@@ -1243,11 +1239,7 @@ class EditBookModal extends Modal {
                 titleInput.focus();
                 return;
             }
-            if (!authorVal) {
-                new Notice("Error: Author is a required field.");
-                authorInput.focus();
-                return;
-            }
+
 
             this.close();
             this.onSubmit({
