@@ -1285,6 +1285,100 @@ class EditBookModal extends Modal {
     }
 }
 
+// Modal to change status and rating of a book
+class StatusRatingModal extends Modal {
+    file: TFile;
+    initialStatus: string;
+    initialRating: number;
+    onSubmit: (status: string, rating: number) => void;
+
+    constructor(app: App, file: TFile, initialStatus: string, initialRating: number, onSubmit: (status: string, rating: number) => void) {
+        super(app);
+        this.file = file;
+        this.initialStatus = initialStatus;
+        this.initialRating = initialRating;
+        this.onSubmit = onSubmit;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.addClass("rrm-modal");
+
+        contentEl.createEl("h2", { text: `Update Status & Rating`, cls: "rrm-modal-title" });
+        contentEl.createEl("p", { text: this.file.basename, cls: "rrm-modal-subtitle" });
+
+        const form = contentEl.createDiv({ cls: "rrm-form" });
+
+        // Status Field
+        const statusGroup = form.createDiv({ cls: "rrm-field-group" });
+        statusGroup.createEl("label", { text: "Reading Status" });
+        const statusSelect = statusGroup.createEl("select", { cls: "rrm-select" });
+        const statuses = ["To Read", "Reading", "Finished", "On Hold"];
+        statuses.forEach(status => {
+            const option = statusSelect.createEl("option", { text: status, value: status });
+            if (status === this.initialStatus) {
+                option.selected = true;
+            }
+        });
+
+        // Rating Field
+        const ratingGroup = form.createDiv({ cls: "rrm-field-group" });
+        ratingGroup.createEl("label", { text: "Rating" });
+        const ratingInputContainer = ratingGroup.createDiv({ cls: "rrm-rating-input" });
+        let selectedRating = this.initialRating;
+        const stars: HTMLSpanElement[] = [];
+        for (let i = 1; i <= 5; i++) {
+            const star = ratingInputContainer.createSpan({ text: "★", cls: "rrm-star" });
+            star.addEventListener("click", () => {
+                if (selectedRating === i) {
+                    selectedRating = 0; // Toggle off if clicked again
+                } else {
+                    selectedRating = i;
+                }
+                updateStarsDisplay();
+            });
+            stars.push(star);
+        }
+        const updateStarsDisplay = () => {
+            stars.forEach((star, idx) => {
+                if (idx < selectedRating) {
+                    star.addClass("is-selected");
+                } else {
+                    star.removeClass("is-selected");
+                }
+            });
+        };
+        updateStarsDisplay();
+
+        // Action Buttons
+        const buttonsContainer = form.createDiv({ cls: "rrm-buttons" });
+
+        const cancelButton = buttonsContainer.createEl("button", {
+            text: "Cancel",
+            cls: "rrm-btn rrm-btn-secondary",
+            type: "button"
+        });
+        cancelButton.addEventListener("click", () => this.close());
+
+        const submitButton = buttonsContainer.createEl("button", {
+            text: "Update",
+            cls: "rrm-btn rrm-btn-primary",
+            type: "submit"
+        });
+
+        submitButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            this.close();
+            this.onSubmit(statusSelect.value, selectedRating);
+        });
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+    }
+}
+
 // Quick Action Control Panel Modal
 class QuickActionModal extends Modal {
     plugin: ReadingRecordManager;
@@ -1324,7 +1418,7 @@ class QuickActionModal extends Modal {
             this.plugin.openEditBookModal();
         });
 
-        addCard("🔄", "Toggle Status", "Cycle through To Read / Reading / Finished", () => {
+        addCard("🔄", "Change Status/Rating", "Update reading status and star rating", () => {
             this.plugin.toggleCurrentBookStatus();
         });
 
@@ -1528,12 +1622,8 @@ class ReadingStatusSidebarView extends ItemView {
                             });
                         }
 
-                        // Add Toggle Action Button
-                        let btnText = "✔ Finish";
-                        if (book.status === "To Read") btnText = "📖 Read";
-                        else if (book.status === "Finished") btnText = "🔄 Cycle";
-
-                        const btn = item.createEl("button", { text: btnText, cls: "rrm-sidebar-item-btn" });
+                        // Add Status/Rating Update Button
+                        const btn = item.createEl("button", { text: "⚙ Update", cls: "rrm-sidebar-item-btn" });
                         btn.addEventListener("click", async () => {
                             await this.plugin.toggleBookStatus(book.file);
                             await this.updateView();
@@ -1736,10 +1826,10 @@ export default class ReadingRecordManager extends Plugin {
             callback: () => this.openAddBookModal()
         });
 
-        // 2. Status Toggle Command
+        // 2. Status / Rating Update Command
         this.addCommand({
             id: "toggle-status",
-            name: "Toggle Current Book Status",
+            name: "Change Current Book Status/Rating",
             callback: () => this.toggleCurrentBookStatus()
         });
 
@@ -1799,7 +1889,7 @@ export default class ReadingRecordManager extends Plugin {
                 if (isInBooksFolder) {
                     menu.addItem((item) => {
                         item
-                            .setTitle("Toggle Book Status")
+                            .setTitle("Change Status/Rating")
                             .setIcon("check-square")
                             .onClick(async () => {
                                 await this.toggleBookStatus(file);
@@ -2059,8 +2149,8 @@ export default class ReadingRecordManager extends Plugin {
         this.openEditBookModalForFile(activeFile);
     }
 
-    // Toggles reading status of a specific file (circular toggle)
-    async toggleBookStatus(file: TFile) {
+    // Opens a popup to change status and rating of a specific file
+    async toggleBookStatus(file: TFile, forcedStatus?: string) {
         if (!file || file.extension !== "md") {
             new Notice("Please select a book markdown file first.");
             return;
@@ -2077,37 +2167,35 @@ export default class ReadingRecordManager extends Plugin {
         }
 
         const currentStatus = frontmatter?.status || "To Read";
-        let nextStatus = "To Read";
+        const currentRating = Number(frontmatter?.rating) || 0;
+        const initialStatus = forcedStatus || currentStatus;
 
-        if (currentStatus === "To Read") {
-            nextStatus = "Reading";
-        } else if (currentStatus === "Reading") {
-            nextStatus = "Finished";
-        } else if (currentStatus === "Finished") {
-            nextStatus = "To Read";
-        }
+        new StatusRatingModal(this.app, file, initialStatus, currentRating, async (status, rating) => {
+            try {
+                await this.app.fileManager.processFrontMatter(file, (fm) => {
+                    fm.status = status;
+                    fm.rating = rating;
+                    fm.updated = formatDateTime(new Date());
 
-        try {
-            await this.app.fileManager.processFrontMatter(file, (fm) => {
-                fm.status = nextStatus;
-                fm.updated = formatDateTime(new Date());
+                    if (status === "Finished") {
+                        if (!fm.end_date) {
+                            fm.end_date = formatDate(new Date());
+                        }
+                    } else {
+                        // Remove end_date if we move back from Finished
+                        delete fm.end_date;
+                    }
+                });
 
-                if (nextStatus === "Finished") {
-                    fm.end_date = formatDate(new Date());
-                } else {
-                    // Remove end_date if we move back from Finished
-                    delete fm.end_date;
-                }
-            });
+                new Notice(`"${file.basename}" updated: ${status} (${rating}★)`);
 
-            new Notice(`"${file.basename}" status updated to: ${nextStatus}`);
-
-            // Auto-refresh the master reading list in background
-            await this.updateMasterReadingList(false);
-        } catch (error) {
-            console.error("Failed to update status in frontmatter:", error);
-            new Notice("Error: Failed to update book status.");
-        }
+                // Auto-refresh the master reading list in background
+                await this.updateMasterReadingList(false);
+            } catch (error) {
+                console.error("Failed to update status and rating in frontmatter:", error);
+                new Notice("Error: Failed to update book status and rating.");
+            }
+        }).open();
     }
 
     // Toggles reading status of current file (circular toggle)
