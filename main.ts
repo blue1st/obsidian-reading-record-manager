@@ -1627,7 +1627,42 @@ class ReadingStatusSidebarView extends ItemView {
             // Sections
             renderBookList(filteredBooks.filter(b => b.status === "Reading"), "📖 Currently Reading", "No books in progress.");
             renderBookList(filteredBooks.filter(b => b.status === "To Read"), "⏳ To Read", "No books on your shelf.");
-            renderBookList(filteredBooks.filter(b => b.status === "Finished"), "✅ Finished", "No completed books yet.");
+            
+            const finishedBooksToRender = filteredBooks.filter(b => {
+                if (b.status !== "Finished") return false;
+                if (!this.plugin.settings.enableHideFinished) return true;
+
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const hideDays = this.plugin.settings.hideFinishedDays;
+
+                let finishDate: Date | null = null;
+                if (b.endDate) {
+                    const parts = b.endDate.split("-");
+                    if (parts.length === 3) {
+                        finishDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    }
+                }
+                
+                if (!finishDate && b.updated) {
+                    const datePart = String(b.updated).split(" ")[0];
+                    const parts = datePart.split("-");
+                    if (parts.length === 3) {
+                        finishDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    }
+                }
+
+                if (!finishDate) {
+                    const mtime = new Date(b.file.stat.mtime);
+                    finishDate = new Date(mtime.getFullYear(), mtime.getMonth(), mtime.getDate());
+                }
+
+                const diffDays = Math.floor((today.getTime() - finishDate.getTime()) / (24 * 60 * 60 * 1000));
+
+                return diffDays < hideDays;
+            });
+            
+            renderBookList(finishedBooksToRender, "✅ Finished", "No completed books yet.");
         } else {
             // Compute retrospective stats
             const totalFinished = books.filter(b => b.status === "Finished").length;
