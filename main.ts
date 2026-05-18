@@ -2289,23 +2289,36 @@ export default class ReadingRecordManager extends Plugin {
         let hiddenFinishedCount = 0;
 
         if (this.settings.enableHideFinished) {
-            const now = Date.now();
-            const hideMs = this.settings.hideFinishedDays * 24 * 60 * 60 * 1000;
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const hideDays = this.settings.hideFinishedDays;
 
             for (const book of books) {
                 if (book.status === "Finished") {
-                    let finishTime = NaN;
+                    let finishDate: Date | null = null;
                     if (book.endDate) {
-                        finishTime = Date.parse(book.endDate);
-                    } else if (book.updated) {
-                        finishTime = Date.parse(book.updated.replace(" ", "T"));
+                        const parts = book.endDate.split("-");
+                        if (parts.length === 3) {
+                            finishDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                        }
+                    }
+                    
+                    if (!finishDate && book.updated) {
+                        const datePart = String(book.updated).split(" ")[0];
+                        const parts = datePart.split("-");
+                        if (parts.length === 3) {
+                            finishDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                        }
                     }
 
-                    if (isNaN(finishTime)) {
-                        finishTime = book.file.stat.mtime;
+                    if (!finishDate) {
+                        const mtime = new Date(book.file.stat.mtime);
+                        finishDate = new Date(mtime.getFullYear(), mtime.getMonth(), mtime.getDate());
                     }
 
-                    if (now - finishTime > hideMs) {
+                    const diffDays = Math.floor((today.getTime() - finishDate.getTime()) / (24 * 60 * 60 * 1000));
+
+                    if (diffDays >= hideDays) {
                         hiddenFinishedCount++;
                         continue; // Skip rendering in list
                     }
