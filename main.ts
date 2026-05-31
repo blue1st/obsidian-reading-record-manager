@@ -1479,6 +1479,7 @@ class ReadingStatusSidebarView extends ItemView {
             series: string;
             volume: string;
             category: string;
+            subcategory: string;
             rating: number;
             endDate: string;
             updated: string;
@@ -1500,6 +1501,7 @@ class ReadingStatusSidebarView extends ItemView {
                     series: fm?.series || "",
                     volume: fm?.volume || "",
                     category: fm?.category || "",
+                    subcategory: fm?.subcategory || "",
                     rating: fm?.rating || 0,
                     endDate: fm?.end_date || "",
                     updated: fm?.updated || ""
@@ -1614,12 +1616,28 @@ class ReadingStatusSidebarView extends ItemView {
                             });
                         }
 
+                        // Actions Container
+                        const actionsRow = item.createDiv({ cls: "rrm-sidebar-item-actions" });
+
                         // Add Status/Rating Update Button
-                        const btn = item.createEl("button", { text: "⚙ Update", cls: "rrm-sidebar-item-btn" });
+                        const btn = actionsRow.createEl("button", { text: "⚙ Update", cls: "rrm-sidebar-item-btn" });
                         btn.addEventListener("click", async () => {
                             await this.plugin.toggleBookStatus(book.file);
                             await this.updateView();
                         });
+
+                        // Next Volume Button (Series only, if in Finished state)
+                        if (book.status === "Finished" && book.series) {
+                            const nextVolBtn = actionsRow.createEl("button", {
+                                cls: "rrm-sidebar-item-btn",
+                                text: "⏭️ Next Vol"
+                            });
+                            nextVolBtn.title = "Create next volume note automatically";
+                            nextVolBtn.addEventListener("click", async () => {
+                                await this.plugin.createAndOpenNextVolume(book);
+                                await this.updateView();
+                            });
+                        }
                     }
                 }
             };
@@ -2233,6 +2251,94 @@ export default class ReadingRecordManager extends Plugin {
             return;
         }
         await this.toggleBookStatus(activeFile);
+    }
+
+    // Advanced Sidebar Tool: Create and open the next volume note for a series
+    async createAndOpenNextVolume(current: any) {
+        // Compute next volume string
+        const getNextVolume = (currentVolStr: string): string => {
+            if (!currentVolStr) return "02"; // If current volume is empty, assume next is 02
+
+            const numRegex = /(\d+)(?!.*\d)/; // match last digits block
+            const match = currentVolStr.match(numRegex);
+
+            if (match) {
+                const numStr = match[1];
+                const num = parseInt(numStr, 10);
+                const nextNum = num + 1;
+
+                let nextNumStr = String(nextNum);
+                if (numStr.startsWith("0") && numStr.length > nextNumStr.length) {
+                    nextNumStr = nextNumStr.padStart(numStr.length, "0");
+                }
+
+                return currentVolStr.replace(numRegex, nextNumStr);
+            }
+
+            return currentVolStr + " 2"; // fallback
+        };
+
+        const nextVolume = getNextVolume(current.volume);
+        const cleanSeries = sanitizeFilename(current.series.trim());
+        const parentFolder = `Books/${cleanSeries}`;
+        const cleanVolume = sanitizeVolume(nextVolume.trim());
+        const fileName = `Vol_${cleanVolume}.md`;
+        const fullPath = `${parentFolder}/${fileName}`;
+
+        // Check if file already exists
+        const fileExists = this.app.vault.getAbstractFileByPath(fullPath);
+        if (fileExists) {
+            new Notice(`Next volume "${fileName}" already exists! Opening it instead.`);
+            if (fileExists instanceof TFile) {
+                const leaf = this.app.workspace.getLeaf(false);
+                await leaf.openFile(fileExists);
+            }
+            return;
+        }
+
+        // Create folders recursively
+        await createFolderRecursively(this.app, parentFolder);
+
+        // Generate title
+        const nextTitle = `${current.series} ${nextVolume}`;
+        const updatedTime = formatDateTime(new Date());
+
+        const fileContentLines = [
+            "---",
+            `title: "${escapeYamlString(nextTitle)}"`,
+            `status: "Reading"`,
+            `author: "${escapeYamlString(current.author)}"`,
+            `series: "${escapeYamlString(current.series)}"`,
+            `volume: "${escapeYamlString(nextVolume)}"`,
+            `category: "${escapeYamlString(current.category)}"`,
+            `subcategory: "${escapeYamlString(current.subcategory)}"`,
+            `rating: 0`,
+            `updated: ${updatedTime}`,
+            "---",
+            "",
+            "## Reading Notes",
+            "",
+            "- ",
+            "",
+            "## Final Review",
+            "",
+            ""
+        ];
+
+        const fileContent = fileContentLines.join("\n");
+
+        try {
+            const newFile = await this.app.vault.create(fullPath, fileContent);
+            new Notice(`Next volume created: "${nextTitle}"`);
+
+            const leaf = this.app.workspace.getLeaf(false);
+            await leaf.openFile(newFile);
+
+            await this.updateMasterReadingList(false);
+        } catch (error) {
+            console.error("Failed to auto-create next volume file:", error);
+            new Notice("Error: Failed to auto-generate next volume.");
+        }
     }
 
     // Generates or updates the "Master Reading List" Markdown Table
