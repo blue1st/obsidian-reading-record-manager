@@ -2306,7 +2306,7 @@ export default class ReadingRecordManager extends Plugin {
         const fileContentLines = [
             "---",
             `title: "${escapeYamlString(nextTitle)}"`,
-            `status: "Reading"`,
+            `status: "To Read"`,
             `author: "${escapeYamlString(current.author)}"`,
             `series: "${escapeYamlString(current.series)}"`,
             `volume: "${escapeYamlString(nextVolume)}"`,
